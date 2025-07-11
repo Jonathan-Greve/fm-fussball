@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FM Foosball Statistics Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --dark-gradient: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.2), transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 206, 84, 0.2), transparent 50%);
+            animation: bgAnimation 20s ease infinite;
+            z-index: -2;
+        }
+        
+        @keyframes bgAnimation {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            33% { transform: rotate(120deg) scale(1.1); }
+            66% { transform: rotate(240deg) scale(0.9); }
+        }
+        
+        /* Particle effect */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+        }
+        
+        @keyframes float {
+            from {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Header styling */
+        h1 {
+            text-align: center;
+            font-size: 4em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #f3ec78, #af4261, #f3ec78);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient 5s ease infinite;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+            font-weight: 900;
+            letter-spacing: -2px;
+        }
+        
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.3em;
+            margin-bottom: 40px;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+        
+        /* Glass morphism cards */
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+        
+        .card:hover::before {
+            transform: translateX(100%);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px) scale(1.02);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 
+                0 10px 40px rgba(120, 119, 198, 0.3),
+                0 0 20px rgba(255, 255, 255, 0.1) inset;
+        }
+        
+        .card h2 {
+            color: #fff;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+        }
+        
+        .card h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: var(--primary-gradient);
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+        
+        .card:hover h2::after {
+            width: 100px;
+        }
+        
+        /* Upload button */
+        .file-upload {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .upload-button {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 18px 50px;
+            border-radius: 50px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            display: inline-block;
+            text-decoration: none;
+            box-shadow: 0 4px 30px rgba(120, 119, 198, 0.4);
+        }
+        
+        .upload-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .upload-button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .upload-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 40px rgba(120, 119, 198, 0.6);
+        }
+        
+        /* Season filter */
+        .season-filter {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            border-radius: 50px;
+            margin: 30px auto;
+            display: inline-block;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .season-filter select {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            margin-left: 15px;
+            transition: all 0.3s;
+            outline: none;
+        }
+        
+        .season-filter select:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .season-filter select option {
+            background: #2a2a2a;
+            color: white;
+        }
+        
+        /* Stat cards */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-item {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        
+        .stat-item::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: var(--primary-gradient);
+            opacity: 0.1;
+            transform: rotate(45deg);
+            transition: all 0.5s;
+        }
+        
+        .stat-item:hover::before {
+            top: -75%;
+            left: -75%;
+            opacity: 0.2;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-10px) scale(1.05);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 15px 40px rgba(120, 119, 198, 0.4);
+        }
+        
+        .stat-value {
+            font-size: 3em;
+            font-weight: 900;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #fff, #ddd);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: statPulse 2s ease infinite;
+        }
+        
+        @keyframes statPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .stat-label {
+            font-size: 1em;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+        
+        /* Dashboard grid */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        /* Table styling */
+        .player-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            table-layout: fixed;
+        }
+        
+        .player-table th,
+        .player-table td {
+            padding: 15px 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .player-table th {
+            background: rgba(255, 255, 255, 0.05);
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+        
+        .player-table th:nth-child(1) { width: 15%; }
+        .player-table th:nth-child(2) { width: 25%; }
+        .player-table th:nth-child(3) { width: 10%; }
+        .player-table th:nth-child(4) { width: 10%; }
+        .player-table th:nth-child(5) { width: 15%; }
+        .player-table th:nth-child(6) { width: 25%; }
+        
+        .player-table td:last-child {
+            text-align: center;
+        }
+        
+        .player-table tr {
+            transition: all 0.3s;
+        }
+        
+        .player-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(5px);
+        }
+        
+        .rank-1 { 
+            color: #FFD700;
+            font-weight: 900;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            animation: goldGlow 2s ease infinite;
+        }
+        
+        @keyframes goldGlow {
+            0%, 100% { text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+            50% { text-shadow: 0 0 30px rgba(255, 215, 0, 0.8); }
+        }
+        
+        .rank-2 { 
+            color: #C0C0C0;
+            font-weight: 900;
+            text-shadow: 0 0 15px rgba(192, 192, 192, 0.5);
+        }
+        
+        .rank-3 { 
+            color: #CD7F32;
+            font-weight: 900;
+            text-shadow: 0 0 15px rgba(205, 127, 50, 0.5);
+        }
+        
+        /* Win rate badges */
+        .win-rate {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            white-space: nowrap;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .win-rate-high {
+            background: var(--success-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(67, 233, 123, 0.4);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        .win-rate-medium {
+            background: var(--warning-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(250, 112, 154, 0.4);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        .win-rate-low {
+            background: var(--secondary-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        .win-rate:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Chart container */
+        .chart-container {
+            position: relative;
+            height: 350px;
+            margin-top: 25px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+        }
+        
+        /* Match list */
+        .match-list {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-top: 20px;
+            padding-right: 10px;
+        }
+        
+        .match-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .match-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        .match-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        
+        .match-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .match-item {
+            padding: 20px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .match-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+        
+        .match-item:hover::before {
+            left: 100%;
+        }
+        
+        .match-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateX(10px);
+        }
+        
+        .match-date {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+        }
+        
+        .match-score {
+            font-size: 2.2em;
+            font-weight: 900;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0 30px;
+            letter-spacing: 2px;
+        }
+        
+        .team {
+            flex: 1;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1em;
+            transition: all 0.3s;
+        }
+        
+        .team.winner {
+            color: #43e97b;
+            text-shadow: 0 0 20px rgba(67, 233, 123, 0.5);
+            transform: scale(1.1);
+        }
+        
+        /* Match type badge */
+        .match-type-badge {
+            display: inline-block;
+            background: var(--dark-gradient);
+            color: white;
+            font-size: 0.7em;
+            padding: 4px 10px;
+            border-radius: 10px;
+            margin-left: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Loading animation */
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.5em;
+            margin-top: 100px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+        
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            margin-left: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card {
+            animation: fadeInUp 0.6s ease forwards;
+            opacity: 0;
+        }
+        
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
+        .card:nth-child(5) { animation-delay: 0.5s; }
+        .card:nth-child(6) { animation-delay: 0.6s; }
+        .card:nth-child(7) { animation-delay: 0.7s; }
+        .card:nth-child(8) { animation-delay: 0.8s; }
+        
+        /* Special effects for top player */
+        #topPlayer {
+            position: relative;
+            display: inline-block;
+        }
+        
+        #topPlayer::after {
+            content: '👑';
+            position: absolute;
+            top: -25px;
+            right: -25px;
+            font-size: 1.5em;
+            animation: crown 2s ease infinite;
+        }
+        
+        @keyframes crown {
+            0%, 100% { transform: rotate(-5deg) scale(1); }
+            50% { transform: rotate(5deg) scale(1.1); }
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5em;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .match-score {
+                font-size: 1.5em;
+                margin: 0 15px;
+            }
+            
+            .player-table {
+                font-size: 0.9em;
+            }
+            
+            .player-table th,
+            .player-table td {
+                padding: 10px 5px;
+            }
+            
+            .player-table th:nth-child(1) { width: 10%; }
+            .player-table th:nth-child(2) { width: 30%; }
+            .player-table th:nth-child(3) { width: 8%; }
+            .player-table th:nth-child(4) { width: 8%; }
+            .player-table th:nth-child(5) { width: 14%; }
+            .player-table th:nth-child(6) { width: 30%; }
+            
+            .win-rate {
+                padding: 4px 10px;
+                font-size: 0.8em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .player-table {
+                font-size: 0.8em;
+            }
+            
+            .player-table th:nth-child(3),
+            .player-table td:nth-child(3),
+            .player-table th:nth-child(4),
+            .player-table td:nth-child(4) {
+                display: none;
+            }
+            
+            .player-table th:nth-child(1) { width: 15%; }
+            .player-table th:nth-child(2) { width: 35%; }
+            .player-table th:nth-child(5) { width: 20%; }
+            .player-table th:nth-child(6) { width: 30%; }
+        }
+        
+        /* Custom scrollbar for whole page */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Glow effects */
+        .glow {
+            box-shadow: 
+                0 0 20px rgba(120, 119, 198, 0.5),
+                0 0 40px rgba(120, 119, 198, 0.3),
+                0 0 60px rgba(120, 119, 198, 0.1);
+        }
+        
+        /* Success animation */
+        @keyframes successPulse {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+        
+        .success-ripple {
+            position: fixed;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(67, 233, 123, 0.5);
+            pointer-events: none;
+            animation: successPulse 1s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="container">
+        <h1>⚽ FM FOOSBALL STATS ⚽</h1>
+        <div class="subtitle">Elite Performance Analytics Dashboard</div>
+        
+        <div class="file-upload">
+            <label for="fileInput" class="upload-button">
+                📊 Upload Excel File
+            </label>
+            <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls" style="display: none;">
+        </div>
+        
+        <div id="loadingMessage" class="loading" style="display: none;">Loading data</div>
+        
+        <div id="dashboard" style="display: none;">
+            <!-- Season Filter -->
+            <div style="text-align: center;">
+                <div class="season-filter">
+                    <label style="color: #fff; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Season</label>
+                    <select id="seasonFilter" onchange="filterBySeason()">
+                        <option value="all">All Seasons</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Overall Statistics -->
+            <div class="stat-grid">
+                <div class="stat-item glow">
+                    <div class="stat-value" id="totalMatches">0</div>
+                    <div class="stat-label">Total Matches <span id="seasonLabel"></span></div>
+                </div>
+                <div class="stat-item glow">
+                    <div class="stat-value" id="totalPlayers">0</div>
+                    <div class="stat-label">Active Players</div>
+                </div>
+                <div class="stat-item glow">
+                    <div class="stat-value" id="avgGoals">0</div>
+                    <div class="stat-label">Avg Goals/Match</div>
+                </div>
+                <div class="stat-item glow">
+                    <div class="stat-value" id="topPlayer">-</div>
+                    <div class="stat-label">Current Champion</div>
+                </div>
+            </div>
+            
+            <div class="dashboard">
+                <!-- Player Rankings -->
+                <div class="card">
+                    <h2>🏆 Player Rankings</h2>
+                    <div id="playerRankings"></div>
+                </div>
+                
+                <!-- Match Type Breakdown -->
+                <div class="card">
+                    <h2>🎯 Match Types</h2>
+                    <div id="matchTypeBreakdown"></div>
+                </div>
+                
+                <!-- Win Rate Chart -->
+                <div class="card">
+                    <h2>📊 Win Rate Comparison</h2>
+                    <div class="chart-container">
+                        <canvas id="winRateChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Games Played Chart -->
+                <div class="card">
+                    <h2>🎮 Games Played</h2>
+                    <div class="chart-container">
+                        <canvas id="gamesPlayedChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Season Overview -->
+                <div class="card" id="seasonOverviewCard">
+                    <h2>📅 Season Overview</h2>
+                    <div id="seasonOverview"></div>
+                    <div style="margin-top: 15px; font-size: 0.9em; color: rgba(255, 255, 255, 0.5); text-align: center;">
+                        <em>Processing all quarterly seasons from Excel</em>
+                    </div>
+                </div>
+                
+                <!-- Recent Matches -->
+                <div class="card" style="grid-column: 1 / -1;">
+                    <h2>🔥 Recent Matches</h2>
+                    <div id="recentMatches" class="match-list"></div>
+                </div>
+                
+                <!-- Win/Loss Distribution -->
+                <div class="card">
+                    <h2>📈 Performance Radar</h2>
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Top Teams -->
+                <div class="card">
+                    <h2>👥 Elite Team Combos</h2>
+                    <div id="topTeams"></div>
+                    <div style="margin-top: 15px; font-size: 0.85em; color: rgba(255, 255, 255, 0.5); font-style: italic; text-align: center;">
+                        * 2v2 matches only
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create particle effects
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // Success animation
+        function showSuccessAnimation(x, y) {
+            const ripple = document.createElement('div');
+            ripple.className = 'success-ripple';
+            ripple.style.left = x - 50 + 'px';
+            ripple.style.top = y - 50 + 'px';
+            document.body.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 1000);
+        }
+
+        let allData = {
+            matches: [],
+            playerStats: {},
+            teamStats: {},
+            seasonData: {},
+            allSeasons: []
+        };
+        
+        let filteredData = null;
+        let chartInstances = {};
+
+        // File upload handler
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+        
+        // Helper function to format dates from Excel
+        function formatDate(dateValue) {
+            if (!dateValue) return 'No date';
+            
+            if (typeof dateValue === 'string') {
+                return dateValue;
+            } else if (typeof dateValue === 'number') {
+                // Excel serial date
+                const excelDate = new Date((dateValue - 25569) * 86400 * 1000);
+                return excelDate.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+            }
+            return String(dateValue);
+        }
+
+        // Helper function to format team names (handling 1v1 and 2v1 matches)
+        function formatTeamName(player1, player2) {
+            // Handle 1v1 matches or incomplete teams
+            if (!player2 || player2 === 'Unknown') {
+                return player1 && player1 !== 'Unknown' ? player1 : 'Unknown';
+            }
+            if (!player1 || player1 === 'Unknown') {
+                return player2 && player2 !== 'Unknown' ? player2 : 'Unknown';
+            }
+            return `${player1} & ${player2}`;
+        }
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('loadingMessage').style.display = 'block';
+            document.getElementById('dashboard').style.display = 'none';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    processWorkbook(workbook);
+                    document.getElementById('loadingMessage').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                    showSuccessAnimation(window.innerWidth / 2, window.innerHeight / 2);
+                } catch (error) {
+                    alert('Error reading file: ' + error.message);
+                    document.getElementById('loadingMessage').style.display = 'none';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processWorkbook(workbook) {
+            allData = {
+                matches: [],
+                playerStats: {},
+                teamStats: {},
+                seasonData: {},
+                allSeasons: []
+            };
+
+            const seasonPattern = /^[A-Za-z]+-[A-Za-z]+-[A-Za-z]+$/;
+            const detailPattern = /^Detail\d+$/;
+            const monthPattern = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i;
+            
+            console.log('Found sheets:', workbook.SheetNames);
+            console.log('Processing sheets...');
+            
+            workbook.SheetNames.forEach(sheetName => {
+                // Process quarterly sheets (Jan-Feb-Mar, Apr-May-Jun, etc.)
+                if (seasonPattern.test(sheetName) || monthPattern.test(sheetName)) {
+                    console.log(`\nProcessing season: ${sheetName}`);
+                    const sheet = workbook.Sheets[sheetName];
+                    const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                    console.log(`  Sheet has ${sheetData.length} rows`);
+                    
+                    const beforeCount = allData.matches.length;
+                    const beforePlayers = Object.keys(allData.playerStats).length;
+                    processSheet(sheet, sheetName);
+                    const afterCount = allData.matches.length;
+                    const afterPlayers = Object.keys(allData.playerStats).length;
+                    console.log(`  - Added ${afterCount - beforeCount} matches`);
+                    console.log(`  - Found ${afterPlayers - beforePlayers} new players`);
+                    allData.allSeasons.push(sheetName);
+                }
+                // You can also process Detail sheets if needed
+                else if (detailPattern.test(sheetName)) {
+                    console.log(`Found detail sheet: ${sheetName} (skipping for now)`);
+                }
+                else {
+                    console.log(`Found other sheet: ${sheetName} (skipping)`);
+                }
+            });
+
+            // Calculate overall statistics
+            calculateOverallStats();
+            
+            console.log(`\n=== FOOSBALL DATA SUMMARY ===`);
+            console.log(`Total seasons found: ${allData.allSeasons.length}`);
+            console.log(`Seasons: ${allData.allSeasons.join(', ')}`);
+            console.log(`Total matches: ${allData.matches.length}`);
+            console.log(`Total players: ${Object.keys(allData.playerStats).length}`);
+            console.log(`Players: ${Object.keys(allData.playerStats).join(', ')}`);
+            
+            // Show sample match data
+            if (allData.matches.length > 0) {
+                console.log('\nSample match data:');
+                console.log('First match:', allData.matches[0]);
+                console.log('Last match:', allData.matches[allData.matches.length - 1]);
+            }
+            
+            // Show player stats summary
+            console.log('\nPlayer stats summary:');
+            Object.entries(allData.playerStats).forEach(([player, stats]) => {
+                console.log(`  ${player}: ${stats.wins}W-${stats.losses}L (${stats.gamesPlayed} games)`);
+            });
+            
+            allData.allSeasons.forEach(season => {
+                const seasonData = allData.seasonData[season];
+                const seasonMatches = allData.matches.filter(m => m.period === season);
+                console.log(`\n${season}:`);
+                console.log(`  - Matches in seasonData: ${seasonData.matches}`);
+                console.log(`  - Matches in allData: ${seasonMatches.length}`);
+                console.log(`  - Players: ${seasonData.players.size}`);
+                console.log(`  - Total goals: ${seasonData.totalGoals}`);
+            });
+            console.log(`=============================\n`);
+            
+            allData.allSeasons.forEach(season => {
+                const seasonData = allData.seasonData[season];
+                console.log(`\n${season}: ${seasonData.matches} matches, ${seasonData.players.size} players`);
+            });
+            console.log(`=============================\n`);
+            
+            // Populate season filter
+            const seasonFilter = document.getElementById('seasonFilter');
+            seasonFilter.innerHTML = '<option value="all">All Seasons</option>';
+            allData.allSeasons.forEach(season => {
+                seasonFilter.innerHTML += `<option value="${season}">${season}</option>`;
+            });
+            
+            console.log(`\n=== FOOSBALL DATA SUMMARY ===`);
+            console.log(`Total seasons found: ${allData.allSeasons.length}`);
+            console.log(`Seasons: ${allData.allSeasons.join(', ')}`);
+            console.log(`Total matches: ${allData.matches.length}`);
+            console.log(`Total players: ${Object.keys(allData.playerStats).length}`);
+            allData.allSeasons.forEach(season => {
+                const seasonData = allData.seasonData[season];
+                console.log(`\n${season}: ${seasonData.matches} matches, ${seasonData.players.size} players`);
+            });
+            console.log(`=============================\n`);
+            
+            // Update dashboard
+            updateDashboard();
+        }
+
+        function processSheet(sheet, period) {
+            const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            
+            console.log(`\nProcessing ${period}:`);
+            console.log(`  Total rows in sheet: ${data.length}`);
+            
+            // Initialize season data
+            if (!allData.seasonData[period]) {
+                allData.seasonData[period] = {
+                    matches: 0,
+                    totalGoals: 0,
+                    players: new Set()
+                };
+            }
+            
+            let matchesFound = 0;
+            let rowsChecked = 0;
+            
+            // Process ALL rows looking for matches
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                rowsChecked++;
+                
+                // Check if this row has a match number (numeric value in first column)
+                if (row && row[0] && !isNaN(row[0]) && parseInt(row[0]) > 0) {
+                    matchesFound++;
+                    
+                    if (matchesFound <= 3) {
+                        console.log(`  Found match ${matchesFound} at row ${i + 1}:`, row.slice(0, 8));
+                    }
+                    
+                    const match = {
+                        number: parseInt(row[0]),
+                        date: formatDate(row[1]),
+                        team1: {
+                            player1: (row[2] || 'Unknown').toString().trim(),
+                            player2: (row[3] || 'Unknown').toString().trim(),
+                            score: parseInt(row[4]) || 0
+                        },
+                        team2: {
+                            player1: (row[6] || 'Unknown').toString().trim(),
+                            player2: (row[7] || 'Unknown').toString().trim(),
+                            score: parseInt(row[5]) || 0
+                        },
+                        period: period
+                    };
+                    match.winner = match.team1.score > match.team2.score ? 'team1' : 'team2';
+                    
+                    // Only skip if ALL players are Unknown
+                    if (match.team1.player1 === 'Unknown' && match.team1.player2 === 'Unknown' &&
+                        match.team2.player1 === 'Unknown' && match.team2.player2 === 'Unknown') {
+                        console.log(`  Skipping match ${match.number} - all players unknown`);
+                        continue;
+                    }
+                    
+                    allData.matches.push(match);
+                    
+                    // Update season data
+                    allData.seasonData[period].matches++;
+                    allData.seasonData[period].totalGoals += match.team1.score + match.team2.score;
+                    
+                    // Add players to the set
+                    if (match.team1.player1 !== 'Unknown') allData.seasonData[period].players.add(match.team1.player1);
+                    if (match.team1.player2 !== 'Unknown') allData.seasonData[period].players.add(match.team1.player2);
+                    if (match.team2.player1 !== 'Unknown') allData.seasonData[period].players.add(match.team2.player1);
+                    if (match.team2.player2 !== 'Unknown') allData.seasonData[period].players.add(match.team2.player2);
+                    
+                    // Update player stats
+                    updatePlayerStats(match);
+                    
+                    // Update team stats
+                    updateTeamStats(match);
+                }
+            }
+            
+            console.log(`  Checked ${rowsChecked} rows, found ${matchesFound} matches`);
+            console.log(`  Added ${allData.seasonData[period].matches} valid matches to database`);
+            
+            // Extract player statistics from the right columns (if they exist)
+            let playersInStatsTable = 0;
+            for (let i = 2; i < Math.min(data.length, 20); i++) {
+                const row = data[i];
+                const playerName = row[12];
+                if (playerName && typeof playerName === 'string' && playerName.trim() !== '') {
+                    playersInStatsTable++;
+                    if (!allData.playerStats[playerName]) {
+                        allData.playerStats[playerName] = {
+                            wins: 0,
+                            losses: 0,
+                            gamesPlayed: 0,
+                            goalsFor: 0,
+                            goalsAgainst: 0,
+                            seasons: []
+                        };
+                    }
+                    if (!allData.playerStats[playerName].seasons.includes(period)) {
+                        allData.playerStats[playerName].seasons.push(period);
+                    }
+                }
+            }
+            
+            if (playersInStatsTable > 0) {
+                console.log(`  Found ${playersInStatsTable} players in stats table (column M)`);
+            }
+        }
+
+        function updatePlayerStats(match) {
+            const players = [
+                match.team1.player1,
+                match.team1.player2,
+                match.team2.player1,
+                match.team2.player2
+            ];
+            
+            players.forEach(player => {
+                if (!player || player === 'Unknown') return;
+                
+                if (!allData.playerStats[player]) {
+                    allData.playerStats[player] = {
+                        wins: 0,
+                        losses: 0,
+                        gamesPlayed: 0,
+                        goalsFor: 0,
+                        goalsAgainst: 0,
+                        seasons: []
+                    };
+                }
+                
+                const stats = allData.playerStats[player];
+                stats.gamesPlayed++;
+                
+                if ((match.winner === 'team1' && (player === match.team1.player1 || player === match.team1.player2)) ||
+                    (match.winner === 'team2' && (player === match.team2.player1 || player === match.team2.player2))) {
+                    stats.wins++;
+                } else {
+                    stats.losses++;
+                }
+                
+                // Update goals
+                if (player === match.team1.player1 || player === match.team1.player2) {
+                    stats.goalsFor += match.team1.score;
+                    stats.goalsAgainst += match.team2.score;
+                } else {
+                    stats.goalsFor += match.team2.score;
+                    stats.goalsAgainst += match.team1.score;
+                }
+                
+                // Track season
+                if (match.period && !stats.seasons.includes(match.period)) {
+                    stats.seasons.push(match.period);
+                }
+            });
+        }
+
+        function updateTeamStats(match) {
+            // For 1v1 matches, don't create team stats
+            if ((match.team1.player2 === 'Unknown' || !match.team1.player2) && 
+                (match.team2.player2 === 'Unknown' || !match.team2.player2)) {
+                return; // Skip team stats for 1v1 matches
+            }
+            
+            const team1Key = formatTeamName(match.team1.player1, match.team1.player2);
+            const team2Key = formatTeamName(match.team2.player1, match.team2.player2);
+            
+            // Don't create team stats for teams with only Unknown players
+            if (team1Key !== 'Unknown' && team1Key.includes(' & ')) {
+                if (!allData.teamStats[team1Key]) {
+                    allData.teamStats[team1Key] = {
+                        wins: 0,
+                        losses: 0,
+                        gamesPlayed: 0,
+                        goalsFor: 0,
+                        goalsAgainst: 0
+                    };
+                }
+                
+                const stats = allData.teamStats[team1Key];
+                stats.gamesPlayed++;
+                stats.goalsFor += match.team1.score;
+                stats.goalsAgainst += match.team2.score;
+                if (match.winner === 'team1') stats.wins++;
+                else stats.losses++;
+            }
+            
+            if (team2Key !== 'Unknown' && team2Key.includes(' & ')) {
+                if (!allData.teamStats[team2Key]) {
+                    allData.teamStats[team2Key] = {
+                        wins: 0,
+                        losses: 0,
+                        gamesPlayed: 0,
+                        goalsFor: 0,
+                        goalsAgainst: 0
+                    };
+                }
+                
+                const stats = allData.teamStats[team2Key];
+                stats.gamesPlayed++;
+                stats.goalsFor += match.team2.score;
+                stats.goalsAgainst += match.team1.score;
+                if (match.winner === 'team2') stats.wins++;
+                else stats.losses++;
+            }
+        }
+
+        function calculateOverallStats() {
+            // Calculate win rates and rankings
+            Object.keys(allData.playerStats).forEach(player => {
+                const stats = allData.playerStats[player];
+                stats.winRate = stats.gamesPlayed > 0 ? (stats.wins / stats.gamesPlayed) : 0;
+                stats.goalDiff = stats.goalsFor - stats.goalsAgainst;
+            });
+            
+            // Calculate team win rates
+            Object.keys(allData.teamStats).forEach(team => {
+                const stats = allData.teamStats[team];
+                stats.winRate = stats.gamesPlayed > 0 ? (stats.wins / stats.gamesPlayed) : 0;
+            });
+        }
+
+        function updateDashboard() {
+            updateDashboardWithData(filteredData || allData);
+        }
+
+        function updatePlayerRankings(sortedPlayers) {
+            const rankingsDiv = document.getElementById('playerRankings');
+            
+            if (sortedPlayers.length === 0) {
+                rankingsDiv.innerHTML = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 20px;">No player data available</div>';
+                return;
+            }
+            
+            let html = '<table class="player-table"><thead><tr><th>Rank</th><th>Player</th><th>W</th><th>L</th><th>Games</th><th>Win Rate</th></tr></thead><tbody>';
+            
+            sortedPlayers.slice(0, 10).forEach((entry, index) => {
+                const [player, stats] = entry;
+                const winRateClass = stats.winRate >= 0.6 ? 'win-rate-high' : 
+                                   stats.winRate >= 0.4 ? 'win-rate-medium' : 'win-rate-low';
+                const rankClass = index < 3 ? `rank-${index + 1}` : '';
+                
+                html += `
+                    <tr>
+                        <td class="${rankClass}">${index + 1}</td>
+                        <td>${player}</td>
+                        <td>${stats.wins}</td>
+                        <td>${stats.losses}</td>
+                        <td>${stats.gamesPlayed}</td>
+                        <td><span class="win-rate ${winRateClass}">${(stats.winRate * 100).toFixed(1)}%</span></td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            rankingsDiv.innerHTML = html;
+        }
+
+        function updateWinRateChart(topPlayers) {
+            const ctx = document.getElementById('winRateChart').getContext('2d');
+            
+            // Destroy previous chart instance if it exists
+            if (chartInstances.winRate) {
+                chartInstances.winRate.destroy();
+            }
+            
+            if (topPlayers.length === 0) {
+                ctx.font = '16px Arial';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.textAlign = 'center';
+                ctx.fillText('No player data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+            
+            chartInstances.winRate = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: topPlayers.map(([player, _]) => player),
+                    datasets: [{
+                        label: 'Win Rate %',
+                        data: topPlayers.map(([_, stats]) => (stats.winRate * 100).toFixed(1)),
+                        backgroundColor: topPlayers.map(([_, stats]) => 
+                            stats.winRate >= 0.6 ? 'rgba(67, 233, 123, 0.8)' :
+                            stats.winRate >= 0.4 ? 'rgba(250, 112, 154, 0.8)' :
+                            'rgba(240, 147, 251, 0.8)'
+                        ),
+                        borderColor: topPlayers.map(([_, stats]) => 
+                            stats.winRate >= 0.6 ? 'rgb(67, 233, 123)' :
+                            stats.winRate >= 0.4 ? 'rgb(250, 112, 154)' :
+                            'rgb(240, 147, 251)'
+                        ),
+                        borderWidth: 2,
+                        borderRadius: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                },
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateGamesPlayedChart() {
+            const ctx = document.getElementById('gamesPlayedChart').getContext('2d');
+            const dataToUse = filteredData || allData;
+            const playerData = Object.entries(dataToUse.playerStats)
+                .sort((a, b) => b[1].gamesPlayed - a[1].gamesPlayed)
+                .slice(0, 8);
+            
+            // Destroy previous chart instance if it exists
+            if (chartInstances.gamesPlayed) {
+                chartInstances.gamesPlayed.destroy();
+            }
+            
+            if (playerData.length === 0) {
+                ctx.font = '16px Arial';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.textAlign = 'center';
+                ctx.fillText('No player data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+            
+            chartInstances.gamesPlayed = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: playerData.map(([player, _]) => player),
+                    datasets: [{
+                        data: playerData.map(([_, stats]) => stats.gamesPlayed),
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 206, 86, 0.8)',
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(153, 102, 255, 0.8)',
+                            'rgba(255, 159, 64, 0.8)',
+                            'rgba(199, 199, 199, 0.8)',
+                            'rgba(83, 102, 255, 0.8)'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#0a0a0a'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                padding: 15
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updatePerformanceChart(topPlayers) {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            // Destroy previous chart instance if it exists
+            if (chartInstances.performance) {
+                chartInstances.performance.destroy();
+            }
+            
+            if (topPlayers.length === 0) {
+                ctx.font = '16px Arial';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.textAlign = 'center';
+                ctx.fillText('No player data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+            
+            chartInstances.performance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Win Rate', 'Games Played', 'Goal Difference', 'Wins', 'Consistency'],
+                    datasets: topPlayers.map(([player, stats], index) => ({
+                        label: player,
+                        data: [
+                            stats.winRate * 100,
+                            Math.min(stats.gamesPlayed / 0.5, 100), // Normalize to 100
+                            Math.min((stats.goalDiff + 50) / 1, 100), // Normalize goal diff
+                            Math.min(stats.wins / 0.3, 100), // Normalize wins
+                            Math.min((1 - Math.abs(0.5 - stats.winRate)) * 200, 100) // Consistency score
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ][index],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)',
+                            'rgba(75, 192, 192, 0.2)',
+                            'rgba(153, 102, 255, 0.2)',
+                            'rgba(255, 159, 64, 0.2)'
+                        ][index],
+                        pointBackgroundColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ][index],
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ][index]
+                    }))
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                backdropColor: 'transparent'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            pointLabels: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                padding: 15
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function formatTeamName(player1, player2) {
+            // Handle 1v1 matches or incomplete teams
+            if (!player2 || player2 === 'Unknown') {
+                return player1 && player1 !== 'Unknown' ? player1 : 'Unknown';
+            }
+            if (!player1 || player1 === 'Unknown') {
+                return player2 && player2 !== 'Unknown' ? player2 : 'Unknown';
+            }
+            return `${player1} & ${player2}`;
+        }
+        
+        function updateRecentMatches() {
+            const recentMatchesDiv = document.getElementById('recentMatches');
+            const dataToUse = filteredData || allData;
+            const recentMatches = dataToUse.matches
+                .slice(-10)
+                .reverse();
+            
+            let html = '';
+            recentMatches.forEach(match => {
+                const team1Class = match.winner === 'team1' ? 'winner' : '';
+                const team2Class = match.winner === 'team2' ? 'winner' : '';
+                
+                const team1Name = formatTeamName(match.team1.player1, match.team1.player2);
+                const team2Name = formatTeamName(match.team2.player1, match.team2.player2);
+                
+                // Determine match type
+                const is1v1 = !team1Name.includes(' & ') && !team2Name.includes(' & ');
+                const is2v1 = (team1Name.includes(' & ') && !team2Name.includes(' & ')) || 
+                             (!team1Name.includes(' & ') && team2Name.includes(' & '));
+                
+                let matchTypeBadge = '';
+                if (is1v1) {
+                    matchTypeBadge = '<span class="match-type-badge">1v1</span>';
+                } else if (is2v1) {
+                    matchTypeBadge = '<span class="match-type-badge">2v1</span>';
+                }
+                
+                html += `
+                    <div class="match-item">
+                        <div class="match-date">${match.date || 'No date'}${matchTypeBadge}</div>
+                        <div class="team ${team1Class}">${team1Name}</div>
+                        <div class="match-score">${match.team1.score} - ${match.team2.score}</div>
+                        <div class="team ${team2Class}">${team2Name}</div>
+                    </div>
+                `;
+            });
+            
+            if (html === '') {
+                html = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 20px;">No matches found</div>';
+            }
+            
+            recentMatchesDiv.innerHTML = html;
+        }
+
+        function updateSeasonOverview() {
+            const seasonDiv = document.getElementById('seasonOverview');
+            
+            if (allData.allSeasons.length === 0) {
+                seasonDiv.innerHTML = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 20px;">No season data found</div>';
+                return;
+            }
+            
+            let html = '<table class="player-table"><thead><tr><th>Season</th><th>Matches</th><th>Total Goals</th><th>Avg Goals/Match</th><th>Active Players</th></tr></thead><tbody>';
+            
+            let hasData = false;
+            allData.allSeasons.forEach(season => {
+                const seasonData = allData.seasonData[season];
+                if (seasonData && seasonData.matches > 0) {
+                    hasData = true;
+                    const avgGoals = (seasonData.totalGoals / seasonData.matches).toFixed(1);
+                    html += `
+                        <tr>
+                            <td><strong>${season}</strong></td>
+                            <td>${seasonData.matches}</td>
+                            <td>${seasonData.totalGoals}</td>
+                            <td>${avgGoals}</td>
+                            <td>${seasonData.players.size}</td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            html += '</tbody></table>';
+            
+            if (hasData) {
+                // Add season totals
+                html += `<div style="margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; text-align: center;">
+                    <strong style="color: rgba(255, 255, 255, 0.9);">📊 Total Seasons: ${allData.allSeasons.length}</strong><br>
+                    <span style="color: rgba(255, 255, 255, 0.7); font-size: 0.9em;">${allData.allSeasons.join(' • ')}</span>
+                </div>`;
+            } else {
+                html = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 20px;">No match data found in the seasons</div>';
+            }
+            
+            seasonDiv.innerHTML = html;
+        }
+
+        function updateTopTeams() {
+            const topTeamsDiv = document.getElementById('topTeams');
+            const dataToUse = filteredData || allData;
+            
+            // Rebuild team stats for filtered data if needed
+            let teamStats = dataToUse.teamStats;
+            if (filteredData) {
+                teamStats = {};
+                filteredData.matches.forEach(match => {
+                    // Skip 1v1 matches for team stats
+                    if ((match.team1.player2 === 'Unknown' || !match.team1.player2) && 
+                        (match.team2.player2 === 'Unknown' || !match.team2.player2)) {
+                        return;
+                    }
+                    
+                    const team1Key = formatTeamName(match.team1.player1, match.team1.player2);
+                    const team2Key = formatTeamName(match.team2.player1, match.team2.player2);
+                    
+                    // Process team 1
+                    if (team1Key !== 'Unknown' && team1Key.includes(' & ')) {
+                        if (!teamStats[team1Key]) {
+                            teamStats[team1Key] = {
+                                wins: 0,
+                                losses: 0,
+                                gamesPlayed: 0
+                            };
+                        }
+                        
+                        const stats = teamStats[team1Key];
+                        stats.gamesPlayed++;
+                        if (match.winner === 'team1') stats.wins++;
+                        else stats.losses++;
+                    }
+                    
+                    // Process team 2
+                    if (team2Key !== 'Unknown' && team2Key.includes(' & ')) {
+                        if (!teamStats[team2Key]) {
+                            teamStats[team2Key] = {
+                                wins: 0,
+                                losses: 0,
+                                gamesPlayed: 0
+                            };
+                        }
+                        
+                        const stats = teamStats[team2Key];
+                        stats.gamesPlayed++;
+                        if (match.winner === 'team2') stats.wins++;
+                        else stats.losses++;
+                    }
+                });
+                
+                // Calculate win rates
+                Object.keys(teamStats).forEach(team => {
+                    const stats = teamStats[team];
+                    stats.winRate = stats.gamesPlayed > 0 ? (stats.wins / stats.gamesPlayed) : 0;
+                });
+            }
+            
+            const sortedTeams = Object.entries(teamStats)
+                .filter(([teamKey, stats]) => {
+                    // Lower threshold when filtering by season
+                    const minGames = filteredData ? 1 : 3;
+                    // Skip teams with 'Unknown' players or single players
+                    return stats.gamesPlayed >= minGames && !teamKey.includes('Unknown') && teamKey.includes(' & ');
+                })
+                .sort((a, b) => {
+                    if (b[1].winRate !== a[1].winRate) {
+                        return b[1].winRate - a[1].winRate;
+                    }
+                    return b[1].gamesPlayed - a[1].gamesPlayed;
+                })
+                .slice(0, 5);
+            
+            let html = '<table class="player-table"><thead><tr><th>Team</th><th>Games</th><th>Win Rate</th></tr></thead><tbody>';
+            
+            sortedTeams.forEach(([team, stats]) => {
+                const winRateClass = stats.winRate >= 0.6 ? 'win-rate-high' : 
+                                   stats.winRate >= 0.4 ? 'win-rate-medium' : 'win-rate-low';
+                
+                html += `
+                    <tr>
+                        <td>${team}</td>
+                        <td>${stats.gamesPlayed}</td>
+                        <td><span class="win-rate ${winRateClass}">${(stats.winRate * 100).toFixed(1)}%</span></td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            
+            if (sortedTeams.length === 0) {
+                html = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 20px;">No team data available (minimum 3 games required)</div>';
+            }
+            
+            topTeamsDiv.innerHTML = html;
+        }
+
+        function filterBySeason() {
+            const selectedSeason = document.getElementById('seasonFilter').value;
+            const seasonLabel = document.getElementById('seasonLabel');
+            
+            console.log(`Filtering by season: ${selectedSeason}`);
+            
+            if (selectedSeason === 'all') {
+                // Reset to show all data
+                filteredData = null;
+                seasonLabel.textContent = '';
+                updateDashboard();
+            } else {
+                // Update season label
+                seasonLabel.textContent = `(${selectedSeason})`;
+                
+                // Filter data by selected season
+                filteredData = {
+                    matches: allData.matches.filter(match => match.period === selectedSeason),
+                    playerStats: {},
+                    teamStats: {}
+                };
+                
+                console.log(`Found ${filteredData.matches.length} matches for ${selectedSeason}`);
+                
+                // Recalculate stats for filtered matches
+                filteredData.matches.forEach((match, index) => {
+                    if (index === 0) {
+                        console.log('Processing first filtered match:', match);
+                    }
+                    
+                    // Similar to updatePlayerStats but for filtered data
+                    const players = [
+                        match.team1.player1,
+                        match.team1.player2,
+                        match.team2.player1,
+                        match.team2.player2
+                    ];
+                    
+                    players.forEach(player => {
+                        if (!player || player === 'Unknown') return;
+                        
+                        if (!filteredData.playerStats[player]) {
+                            filteredData.playerStats[player] = {
+                                wins: 0,
+                                losses: 0,
+                                gamesPlayed: 0,
+                                goalsFor: 0,
+                                goalsAgainst: 0
+                            };
+                        }
+                        
+                        const stats = filteredData.playerStats[player];
+                        stats.gamesPlayed++;
+                        
+                        if ((match.winner === 'team1' && (player === match.team1.player1 || player === match.team1.player2)) ||
+                            (match.winner === 'team2' && (player === match.team2.player1 || player === match.team2.player2))) {
+                            stats.wins++;
+                        } else {
+                            stats.losses++;
+                        }
+                        
+                        if (player === match.team1.player1 || player === match.team1.player2) {
+                            stats.goalsFor += match.team1.score;
+                            stats.goalsAgainst += match.team2.score;
+                        } else {
+                            stats.goalsFor += match.team2.score;
+                            stats.goalsAgainst += match.team1.score;
+                        }
+                        
+                        stats.goalDiff = stats.goalsFor - stats.goalsAgainst;
+                    });
+                });
+                
+                // Calculate win rates for filtered data
+                Object.keys(filteredData.playerStats).forEach(player => {
+                    const stats = filteredData.playerStats[player];
+                    stats.winRate = stats.gamesPlayed > 0 ? (stats.wins / stats.gamesPlayed) : 0;
+                    stats.goalDiff = stats.goalsFor - stats.goalsAgainst;
+                });
+                
+                console.log(`Filtered data for ${selectedSeason}:`);
+                console.log(`  - Matches: ${filteredData.matches.length}`);
+                console.log(`  - Players with stats: ${Object.keys(filteredData.playerStats).length}`);
+                console.log(`  - Player names:`, Object.keys(filteredData.playerStats));
+                if (Object.keys(filteredData.playerStats).length > 0) {
+                    console.log(`  - Sample player stats:`, filteredData.playerStats[Object.keys(filteredData.playerStats)[0]]);
+                }
+                
+                // Update dashboard with filtered data
+                updateDashboardWithData(filteredData);
+            }
+        }
+        
+        function updateDashboardWithData(data) {
+            const dataToUse = data || allData;
+            
+            console.log('Updating dashboard with data:', {
+                matches: dataToUse.matches.length,
+                players: Object.keys(dataToUse.playerStats).length,
+                isFiltered: !!data
+            });
+            
+            // Update summary stats
+            document.getElementById('totalMatches').textContent = dataToUse.matches.length;
+            document.getElementById('totalPlayers').textContent = Object.keys(dataToUse.playerStats).length;
+            
+            // Calculate average goals per match
+            const totalGoals = dataToUse.matches.reduce((sum, match) => 
+                sum + match.team1.score + match.team2.score, 0);
+            const avgGoals = dataToUse.matches.length > 0 ? (totalGoals / dataToUse.matches.length).toFixed(1) : 0;
+            document.getElementById('avgGoals').textContent = avgGoals;
+            
+            console.log(`Data to use has ${Object.keys(dataToUse.playerStats).length} players`);
+            
+            // Get top player
+            const sortedPlayers = Object.entries(dataToUse.playerStats)
+                .filter(([player, stats]) => {
+                    // Basic validation and minimum games
+                    // Lower threshold when filtering by season
+                    const minGames = data ? 1 : 5;
+                    return player && stats.gamesPlayed >= minGames;
+                })
+                .sort((a, b) => {
+                    if (b[1].winRate !== a[1].winRate) {
+                        return b[1].winRate - a[1].winRate;
+                    }
+                    return b[1].gamesPlayed - a[1].gamesPlayed;
+                });
+            
+            console.log(`Found ${sortedPlayers.length} qualified players`);
+            
+            if (sortedPlayers.length > 0) {
+                document.getElementById('topPlayer').textContent = sortedPlayers[0][0];
+            } else {
+                document.getElementById('topPlayer').textContent = '-';
+            }
+            
+            updatePlayerRankings(sortedPlayers);
+            // Update season overview only if not filtered
+            if (!data || data === allData) {
+                updateSeasonOverview();
+            }
+            updateMatchTypeBreakdown(dataToUse);
+            updateWinRateChart(sortedPlayers.slice(0, 10));
+            updateGamesPlayedChart();
+            updatePerformanceChart(sortedPlayers.slice(0, 6));
+            updateRecentMatches();
+            updateTopTeams();
+        }
+        
+        function updateMatchTypeBreakdown(data) {
+            const breakdownDiv = document.getElementById('matchTypeBreakdown');
+            
+            let matches1v1 = 0;
+            let matches2v1 = 0;
+            let matches2v2 = 0;
+            
+            data.matches.forEach(match => {
+                const team1Has2 = match.team1.player2 && match.team1.player2 !== 'Unknown';
+                const team2Has2 = match.team2.player2 && match.team2.player2 !== 'Unknown';
+                
+                if (!team1Has2 && !team2Has2) matches1v1++;
+                else if (team1Has2 && team2Has2) matches2v2++;
+                else matches2v1++;
+            });
+            
+            const total = matches1v1 + matches2v1 + matches2v2;
+            
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center;">
+                    <div style="padding: 20px; background: rgba(120, 119, 198, 0.2); border-radius: 15px; border: 1px solid rgba(120, 119, 198, 0.3); transition: all 0.3s;">
+                        <div style="font-size: 2.5em; font-weight: 900; color: #fff; margin-bottom: 5px;">${matches2v2}</div>
+                        <div style="font-size: 1em; color: rgba(255, 255, 255, 0.8); font-weight: 600;">2v2 Matches</div>
+                        <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6); margin-top: 5px;">${total > 0 ? ((matches2v2/total)*100).toFixed(1) : 0}%</div>
+                    </div>
+                    <div style="padding: 20px; background: rgba(250, 112, 154, 0.2); border-radius: 15px; border: 1px solid rgba(250, 112, 154, 0.3); transition: all 0.3s;">
+                        <div style="font-size: 2.5em; font-weight: 900; color: #fff; margin-bottom: 5px;">${matches2v1}</div>
+                        <div style="font-size: 1em; color: rgba(255, 255, 255, 0.8); font-weight: 600;">2v1 Matches</div>
+                        <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6); margin-top: 5px;">${total > 0 ? ((matches2v1/total)*100).toFixed(1) : 0}%</div>
+                    </div>
+                    <div style="padding: 20px; background: rgba(67, 233, 123, 0.2); border-radius: 15px; border: 1px solid rgba(67, 233, 123, 0.3); transition: all 0.3s;">
+                        <div style="font-size: 2.5em; font-weight: 900; color: #fff; margin-bottom: 5px;">${matches1v1}</div>
+                        <div style="font-size: 1em; color: rgba(255, 255, 255, 0.8); font-weight: 600;">1v1 Matches</div>
+                        <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6); margin-top: 5px;">${total > 0 ? ((matches1v1/total)*100).toFixed(1) : 0}%</div>
+                    </div>
+                </div>
+            `;
+            
+            breakdownDiv.innerHTML = html;
+            
+            // Add hover effects
+            const boxes = breakdownDiv.querySelectorAll('div > div');
+            boxes.forEach(box => {
+                box.addEventListener('mouseover', function() {
+                    this.style.transform = 'scale(1.05)';
+                    this.style.boxShadow = '0 8px 25px rgba(255, 255, 255, 0.1)';
+                });
+                box.addEventListener('mouseout', function() {
+                    this.style.transform = 'scale(1)';
+                    this.style.boxShadow = 'none';
+                });
+            });
+        }
+
+        // Auto-load sample data (you can remove this and just use file upload)
+        window.addEventListener('load', () => {
+            // Display instructions
+            console.log('FM Foosball Statistics Dashboard loaded!');
+            console.log('Please upload your FM FOOSBALL.xlsx file to see the statistics.');
+            console.log('The dashboard will process all seasonal tabs (Jan-Feb-Mar, Apr-May-Jun, etc.)');
+            console.log('If you encounter issues, check the console for debugging information.');
+        });
+    </script>
+</body>
+</html>
