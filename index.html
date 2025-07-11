@@ -349,16 +349,15 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            table-layout: fixed;
+            table-layout: auto;
         }
         
         .player-table th,
         .player-table td {
-            padding: 15px 10px;
+            padding: 15px 8px;
             text-align: left;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
         .player-table th {
@@ -368,7 +367,6 @@
             text-transform: uppercase;
             font-size: 0.85em;
             letter-spacing: 1px;
-            white-space: nowrap;
         }
         
         .player-table tr {
@@ -378,6 +376,48 @@
         .player-table tr:hover {
             background: rgba(255, 255, 255, 0.05);
             transform: translateX(5px);
+        }
+        
+        /* Specific column widths for player rankings table */
+        .rankings-table th:nth-child(1),
+        .rankings-table td:nth-child(1) { /* Rank */
+            width: 10%;
+            text-align: center;
+            padding: 15px 5px;
+        }
+        
+        .rankings-table th:nth-child(2),
+        .rankings-table td:nth-child(2) { /* Player */
+            width: 30%;
+            padding: 15px 10px;
+        }
+        
+        .rankings-table th:nth-child(3),
+        .rankings-table td:nth-child(3) { /* Wins */
+            width: 10%;
+            text-align: center;
+            padding: 15px 5px;
+        }
+        
+        .rankings-table th:nth-child(4),
+        .rankings-table td:nth-child(4) { /* Losses */
+            width: 10%;
+            text-align: center;
+            padding: 15px 5px;
+        }
+        
+        .rankings-table th:nth-child(5),
+        .rankings-table td:nth-child(5) { /* Games */
+            width: 15%;
+            text-align: center;
+            padding: 15px 5px;
+        }
+        
+        .rankings-table th:nth-child(6),
+        .rankings-table td:nth-child(6) { /* Win Rate */
+            width: 25%;
+            text-align: center;
+            padding: 15px 10px;
         }
         
         /* Specific column widths for ELO table */
@@ -684,10 +724,27 @@
             }
             
             /* Adjust table font sizes on mobile */
+            .player-table {
+                font-size: 0.85em;
+            }
+            
             .player-table th,
             .player-table td {
                 padding: 10px 5px;
-                font-size: 0.85em;
+            }
+            
+            .rankings-table th,
+            .rankings-table td {
+                padding: 8px 3px;
+                font-size: 0.8em;
+            }
+            
+            /* Make columns more compact on mobile */
+            .rankings-table th:nth-child(3),
+            .rankings-table td:nth-child(3),
+            .rankings-table th:nth-child(4),
+            .rankings-table td:nth-child(4) {
+                padding: 8px 2px;
             }
             
             .elo-table th,
@@ -698,6 +755,12 @@
             /* Make ELO change more compact on mobile */
             .elo-change {
                 font-size: 0.8em;
+            }
+            
+            /* Hide win rate percentage sign on mobile to save space */
+            .win-rate {
+                font-size: 0.8em;
+                padding: 4px 10px;
             }
         }
         
@@ -942,6 +1005,25 @@
             overflow: hidden;
         }
         
+        /* Chart filter select styling */
+        #chartPlayerFilter {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        #chartPlayerFilter:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        #chartPlayerFilter option {
+            background: #2a2a2a;
+            color: white;
+        }
+        
         /* On Fire Animation */
         .on-fire {
             position: relative;
@@ -1169,7 +1251,7 @@
                 </div>
                 <div class="stat-item glow">
                     <div class="stat-value" id="topPlayer">-</div>
-                    <div class="stat-label">Current Champion</div>
+                    <div class="stat-label">Current Champion (5+ games)</div>
                 </div>
             </div>
             
@@ -1178,6 +1260,15 @@
                 <div class="card">
                     <h2>🏆 Player Rankings</h2>
                     <div id="playerRankings"></div>
+                </div>
+                
+                <!-- Rookies Section -->
+                <div class="card" style="grid-column: span 1;">
+                    <h2>🌟 Rookies (Under 5 Games)</h2>
+                    <div id="rookieRankings"></div>
+                    <div style="margin-top: 15px; font-size: 0.85em; color: rgba(255, 255, 255, 0.5); font-style: italic; text-align: center;">
+                        * Players need 5+ games to qualify for main rankings
+                    </div>
                 </div>
                 
                 <!-- Match Type Breakdown -->
@@ -1189,6 +1280,13 @@
                 <!-- Win Rate Chart -->
                 <div class="card">
                     <h2>📊 Win Rate Comparison</h2>
+                    <div style="margin-bottom: 10px; text-align: center;">
+                        <select id="chartPlayerFilter" onchange="updateWinRateChart()" style="padding: 8px 15px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 20px; color: white; cursor: pointer; font-size: 0.9em;">
+                            <option value="qualified">Qualified Players (5+ games)</option>
+                            <option value="all">All Players</option>
+                            <option value="rookies">Rookies Only (&lt;5 games)</option>
+                        </select>
+                    </div>
                     <div class="chart-container">
                         <canvas id="winRateChart"></canvas>
                     </div>
@@ -1250,6 +1348,9 @@
                 <div class="card">
                     <h2>📊 ELO Rankings</h2>
                     <div id="eloRankings"></div>
+                    <div style="margin-top: 15px; font-size: 0.85em; color: rgba(255, 255, 255, 0.5); font-style: italic; text-align: center;">
+                        * Minimum 5 games required for ELO ranking
+                    </div>
                 </div>
                 
                 <!-- Achievement Showcase -->
@@ -1488,6 +1589,16 @@
             Object.entries(allData.playerStats).forEach(([player, stats]) => {
                 console.log(`  ${player}: ${stats.wins}W-${stats.losses}L (${stats.gamesPlayed} games)`);
             });
+            
+            // Log players with less than 5 games
+            const rookiePlayers = Object.entries(allData.playerStats)
+                .filter(([_, stats]) => stats.gamesPlayed < 5);
+            if (rookiePlayers.length > 0) {
+                console.log('\nRookie players (< 5 games):');
+                rookiePlayers.forEach(([player, stats]) => {
+                    console.log(`  ${player}: ${stats.gamesPlayed} games`);
+                });
+            }
             
             allData.allSeasons.forEach(season => {
                 const seasonData = allData.seasonData[season];
@@ -2127,7 +2238,7 @@
                 return;
             }
             
-            let html = '<div style="overflow-x: auto;"><table class="player-table"><thead><tr><th style="width: 15%;">Rank</th><th style="width: 30%;">Player</th><th style="width: 10%;">W</th><th style="width: 10%;">L</th><th style="width: 15%;">Games</th><th style="width: 20%;">Win Rate</th></tr></thead><tbody>';
+            let html = '<div style="overflow-x: auto;"><table class="player-table rankings-table"><thead><tr><th>Rank</th><th>Player</th><th>W</th><th>L</th><th>Games</th><th>Win Rate</th></tr></thead><tbody>';
             
             sortedPlayers.slice(0, 10).forEach((entry, index) => {
                 const [player, stats] = entry;
@@ -2137,12 +2248,12 @@
                 
                 html += `
                     <tr>
-                        <td class="${rankClass}" style="text-align: center;">${index + 1}</td>
+                        <td class="${rankClass}">${index + 1}</td>
                         <td><span class="clickable-player" onclick="showPlayerProfile('${player}')">${player}</span></td>
-                        <td style="text-align: center;">${stats.wins}</td>
-                        <td style="text-align: center;">${stats.losses}</td>
-                        <td style="text-align: center;">${stats.gamesPlayed}</td>
-                        <td style="text-align: center;"><span class="win-rate ${winRateClass}">${(stats.winRate * 100).toFixed(1)}%</span></td>
+                        <td>${stats.wins}</td>
+                        <td>${stats.losses}</td>
+                        <td>${stats.gamesPlayed}</td>
+                        <td><span class="win-rate ${winRateClass}">${(stats.winRate * 100).toFixed(1)}%</span></td>
                     </tr>
                 `;
             });
@@ -2150,16 +2261,86 @@
             html += '</tbody></table></div>';
             rankingsDiv.innerHTML = html;
         }
+        
+        function updateRookieRankings(dataToUse) {
+            const rookieDiv = document.getElementById('rookieRankings');
+            
+            // Get players with less than 5 games
+            const rookies = Object.entries(dataToUse.playerStats)
+                .filter(([player, stats]) => stats.gamesPlayed > 0 && stats.gamesPlayed < 5)
+                .sort((a, b) => {
+                    // Sort by games played first, then by win rate
+                    if (b[1].gamesPlayed !== a[1].gamesPlayed) {
+                        return b[1].gamesPlayed - a[1].gamesPlayed;
+                    }
+                    return b[1].winRate - a[1].winRate;
+                });
+            
+            if (rookies.length === 0) {
+                rookieDiv.innerHTML = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 20px;">No rookies currently - all players have 5+ games!</div>';
+                return;
+            }
+            
+            let html = '<div style="overflow-x: auto;"><table class="player-table rankings-table"><thead><tr><th>Rank</th><th>Player</th><th>W</th><th>L</th><th>Games</th><th>Win Rate</th></tr></thead><tbody>';
+            
+            rookies.forEach((entry, index) => {
+                const [player, stats] = entry;
+                const winRateClass = stats.winRate >= 0.6 ? 'win-rate-high' : 
+                                   stats.winRate >= 0.4 ? 'win-rate-medium' : 'win-rate-low';
+                
+                html += `
+                    <tr>
+                        <td style="color: rgba(255, 255, 255, 0.6);">${index + 1}</td>
+                        <td><span class="clickable-player" onclick="showPlayerProfile('${player}')">${player}</span></td>
+                        <td>${stats.wins}</td>
+                        <td>${stats.losses}</td>
+                        <td>${stats.gamesPlayed}</td>
+                        <td><span class="win-rate ${winRateClass}">${(stats.winRate * 100).toFixed(1)}%</span></td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+            rookieDiv.innerHTML = html;
+        }
 
-        function updateWinRateChart(topPlayers) {
+        function updateWinRateChart(topPlayers = null) {
             const ctx = document.getElementById('winRateChart').getContext('2d');
+            const filterValue = document.getElementById('chartPlayerFilter') ? 
+                document.getElementById('chartPlayerFilter').value : 'qualified';
             
             // Destroy previous chart instance if it exists
             if (chartInstances.winRate) {
                 chartInstances.winRate.destroy();
             }
             
-            if (topPlayers.length === 0) {
+            // Get data source
+            const dataToUse = filteredData || allData;
+            
+            // If no topPlayers provided, calculate them
+            if (!topPlayers) {
+                topPlayers = Object.entries(dataToUse.playerStats)
+                    .filter(([_, stats]) => stats.gamesPlayed >= 5)
+                    .sort((a, b) => b[1].winRate - a[1].winRate)
+                    .slice(0, 10);
+            }
+            
+            // Filter players based on selection
+            let playersToShow = topPlayers;
+            
+            if (filterValue === 'all') {
+                playersToShow = Object.entries(dataToUse.playerStats)
+                    .filter(([_, stats]) => stats.gamesPlayed > 0)
+                    .sort((a, b) => b[1].winRate - a[1].winRate)
+                    .slice(0, 15);
+            } else if (filterValue === 'rookies') {
+                playersToShow = Object.entries(dataToUse.playerStats)
+                    .filter(([_, stats]) => stats.gamesPlayed > 0 && stats.gamesPlayed < 5)
+                    .sort((a, b) => b[1].winRate - a[1].winRate)
+                    .slice(0, 10);
+            }
+            
+            if (playersToShow.length === 0) {
                 ctx.font = '16px Arial';
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
                 ctx.textAlign = 'center';
@@ -2170,16 +2351,20 @@
             chartInstances.winRate = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: topPlayers.map(([player, _]) => player),
+                    labels: playersToShow.map(([player, stats]) => 
+                        `${player} (${stats.gamesPlayed})`
+                    ),
                     datasets: [{
                         label: 'Win Rate %',
-                        data: topPlayers.map(([_, stats]) => (stats.winRate * 100).toFixed(1)),
-                        backgroundColor: topPlayers.map(([_, stats]) => 
+                        data: playersToShow.map(([_, stats]) => (stats.winRate * 100).toFixed(1)),
+                        backgroundColor: playersToShow.map(([_, stats]) => 
+                            stats.gamesPlayed < 5 ? 'rgba(255, 206, 86, 0.8)' : // Yellow for rookies
                             stats.winRate >= 0.6 ? 'rgba(67, 233, 123, 0.8)' :
                             stats.winRate >= 0.4 ? 'rgba(250, 112, 154, 0.8)' :
                             'rgba(240, 147, 251, 0.8)'
                         ),
-                        borderColor: topPlayers.map(([_, stats]) => 
+                        borderColor: playersToShow.map(([_, stats]) => 
+                            stats.gamesPlayed < 5 ? 'rgb(255, 206, 86)' :
                             stats.winRate >= 0.6 ? 'rgb(67, 233, 123)' :
                             stats.winRate >= 0.4 ? 'rgb(250, 112, 154)' :
                             'rgb(240, 147, 251)'
@@ -2194,6 +2379,15 @@
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const [player, _] = playersToShow[context.dataIndex];
+                                    const stats = dataToUse.playerStats[player];
+                                    return `${stats.wins}W - ${stats.losses}L`;
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -2212,7 +2406,9 @@
                         },
                         x: {
                             ticks: {
-                                color: 'rgba(255, 255, 255, 0.7)'
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                maxRotation: 45,
+                                minRotation: 45
                             },
                             grid: {
                                 display: false
@@ -2692,10 +2888,10 @@
             
             console.log(`Data to use has ${Object.keys(dataToUse.playerStats).length} players`);
             
-            // Get top player
+            // Get top player (from qualified players only)
             const sortedPlayers = Object.entries(dataToUse.playerStats)
                 .filter(([player, stats]) => {
-                    // Basic validation and minimum games
+                    // Basic validation and minimum games for top player
                     // Lower threshold when filtering by season
                     const minGames = data ? 1 : 5;
                     return player && stats.gamesPlayed >= minGames;
@@ -2716,6 +2912,7 @@
             }
             
             updatePlayerRankings(sortedPlayers);
+            updateRookieRankings(dataToUse);
             // Update season overview only if not filtered
             if (!data || data === allData) {
                 updateSeasonOverview();
@@ -3316,13 +3513,13 @@
             
             // Get top players for the matrix
             const topPlayers = Object.entries(dataToUse.playerStats)
-                .filter(([_, stats]) => stats.gamesPlayed >= 5)
+                .filter(([_, stats]) => stats.gamesPlayed >= 3) // Lowered from 5 to 3
                 .sort((a, b) => b[1].winRate - a[1].winRate)
-                .slice(0, 8)
+                .slice(0, 10) // Increased from 8 to 10
                 .map(([player, _]) => player);
             
             if (topPlayers.length < 2) {
-                matrixDiv.innerHTML = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 40px;">Not enough players with 5+ games for head-to-head matrix</div>';
+                matrixDiv.innerHTML = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 40px;">Not enough players with 3+ games for head-to-head matrix</div>';
                 return;
             }
             
@@ -3369,7 +3566,7 @@
         
         function updateMatchPredictorOptions() {
             const players = Object.keys(allData.playerStats)
-                .filter(player => allData.playerStats[player].gamesPlayed >= 3)
+                .filter(player => allData.playerStats[player].gamesPlayed >= 1) // Lowered from 3 to 1
                 .sort();
             
             const selects = ['team1Player1', 'team1Player2', 'team2Player1', 'team2Player2'];
