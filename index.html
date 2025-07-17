@@ -1206,6 +1206,35 @@
         .form-match:hover {
             transform: scale(1.2);
         }
+
+        .match-combination {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .match-combination.best-match {
+            border: 2px solid rgba(67, 233, 123, 0.6);
+            box-shadow: 0 0 30px rgba(67, 233, 123, 0.3);
+        }
+
+        .fairness-meter {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .fairness-perfect { background: var(--success-gradient); }
+        .fairness-good { background: var(--warning-gradient); }
+        .fairness-poor { background: var(--secondary-gradient); }
     </style>
 </head>
 <body>
@@ -1390,6 +1419,43 @@
                     <div id="headToHeadMatrix"></div>
                 </div>
                 
+                <!-- Fair Match Composer -->
+                <div class="card" style="grid-column: 1 / -1;">
+                    <h2>⚖️ Fair Match Composer</h2>
+                    <div id="fairMatchComposer">
+                        <div style="text-align: center; margin-bottom: 25px;">
+                            <p style="color: rgba(255, 255, 255, 0.7); font-size: 1.1em;">Select 4 players to find the fairest team combination</p>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.8); font-size: 0.9em; font-weight: 600;">Player 1</label>
+                                <select id="fairMatchPlayer1" class="predictor-select" onchange="updateFairMatch()">
+                                    <option value="">Select Player 1</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.8); font-size: 0.9em; font-weight: 600;">Player 2</label>
+                                <select id="fairMatchPlayer2" class="predictor-select" onchange="updateFairMatch()">
+                                    <option value="">Select Player 2</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.8); font-size: 0.9em; font-weight: 600;">Player 3</label>
+                                <select id="fairMatchPlayer3" class="predictor-select" onchange="updateFairMatch()">
+                                    <option value="">Select Player 3</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.8); font-size: 0.9em; font-weight: 600;">Player 4</label>
+                                <select id="fairMatchPlayer4" class="predictor-select" onchange="updateFairMatch()">
+                                    <option value="">Select Player 4</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="fairMatchResult"></div>
+                    </div>
+                </div>
+
                 <!-- Match Predictor -->
                 <div class="card">
                     <h2>🔮 Match Predictor</h2>
@@ -3682,6 +3748,260 @@
             html += '</div>';
             resultDiv.innerHTML = html;
         }
+
+        // 1. Function to populate the Fair Match Composer dropdowns
+        function updateFairMatchComposerOptions() {
+            const players = Object.keys(allData.playerStats)
+                .filter(player => allData.playerStats[player].gamesPlayed >= 1)
+                .sort();
+            
+            console.log('Updating Fair Match Composer with players:', players);
+            
+            for (let i = 1; i <= 4; i++) {
+                const select = document.getElementById(`fairMatchPlayer${i}`);
+                if (select) {
+                    const currentValue = select.value;
+                    select.innerHTML = `<option value="">Select Player ${i}</option>`;
+                    
+                    players.forEach(player => {
+                        select.innerHTML += `<option value="${player}">${player}</option>`;
+                    });
+                    
+                    select.value = currentValue;
+                } else {
+                    console.log(`Could not find select element: fairMatchPlayer${i}`);
+                }
+            }
+        }
+
+        // 2. Main Fair Match analysis function
+        function updateFairMatch() {
+            const player1 = document.getElementById('fairMatchPlayer1').value;
+            const player2 = document.getElementById('fairMatchPlayer2').value;
+            const player3 = document.getElementById('fairMatchPlayer3').value;
+            const player4 = document.getElementById('fairMatchPlayer4').value;
+            
+            const resultDiv = document.getElementById('fairMatchResult');
+            
+            // Check if all 4 players are selected
+            if (!player1 || !player2 || !player3 || !player4) {
+                resultDiv.innerHTML = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 30px;">Please select all 4 players</div>';
+                return;
+            }
+            
+            // Check for duplicate selections
+            const selectedPlayers = [player1, player2, player3, player4];
+            const uniquePlayers = new Set(selectedPlayers);
+            if (uniquePlayers.size !== 4) {
+                resultDiv.innerHTML = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 30px;">Please select 4 different players</div>';
+                return;
+            }
+            
+            // Check if all players have ELO ratings
+            const allHaveElo = selectedPlayers.every(p => allData.eloRatings[p] && allData.eloRatings[p].rating);
+            if (!allHaveElo) {
+                resultDiv.innerHTML = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 30px;">Some players don\'t have enough matches for analysis</div>';
+                return;
+            }
+            
+            // Calculate all possible team combinations
+            const combinations = [
+                { team1: [player1, player2], team2: [player3, player4] },
+                { team1: [player1, player3], team2: [player2, player4] },
+                { team1: [player1, player4], team2: [player2, player3] }
+            ];
+            
+            // Calculate fairness for each combination
+            const combinationResults = combinations.map(combo => {
+                const team1AvgElo = combo.team1.reduce((sum, p) => sum + allData.eloRatings[p].rating, 0) / 2;
+                const team2AvgElo = combo.team2.reduce((sum, p) => sum + allData.eloRatings[p].rating, 0) / 2;
+                
+                const team1WinProb = 1 / (1 + Math.pow(10, (team2AvgElo - team1AvgElo) / 400));
+                const fairnessScore = 1 - Math.abs(0.5 - team1WinProb) * 2; // 1 = perfectly fair, 0 = completely unfair
+                
+                // Get historical data
+                let team1Synergy = 0;
+                let team2Synergy = 0;
+                
+                // Check if teammates have played together before
+                const team1Key = formatTeamName(combo.team1[0], combo.team1[1]);
+                const team2Key = formatTeamName(combo.team2[0], combo.team2[1]);
+                
+                if (allData.teamStats[team1Key]) {
+                    team1Synergy = allData.teamStats[team1Key].winRate;
+                }
+                if (allData.teamStats[team2Key]) {
+                    team2Synergy = allData.teamStats[team2Key].winRate;
+                }
+                
+                return {
+                    ...combo,
+                    team1AvgElo: Math.round(team1AvgElo),
+                    team2AvgElo: Math.round(team2AvgElo),
+                    team1WinProb,
+                    fairnessScore,
+                    team1Synergy,
+                    team2Synergy,
+                    eloDiff: Math.abs(team1AvgElo - team2AvgElo)
+                };
+            });
+            
+            // Sort by fairness (highest first)
+            combinationResults.sort((a, b) => b.fairnessScore - a.fairnessScore);
+            
+            // Generate HTML for results
+            let html = '<div style="margin-top: 20px;">';
+            
+            combinationResults.forEach((result, index) => {
+                const isBest = index === 0;
+                const fairnessPercent = (result.fairnessScore * 100).toFixed(1);
+                const team1WinPercent = (result.team1WinProb * 100).toFixed(1);
+                const team2WinPercent = ((1 - result.team1WinProb) * 100).toFixed(1);
+                
+                let fairnessClass = 'fairness-poor';
+                let fairnessEmoji = '⚠️';
+                if (result.fairnessScore >= 0.9) {
+                    fairnessClass = 'fairness-perfect';
+                    fairnessEmoji = '✨';
+                } else if (result.fairnessScore >= 0.7) {
+                    fairnessClass = 'fairness-good';
+                    fairnessEmoji = '✅';
+                }
+                
+                html += `
+                    <div class="match-combination ${isBest ? 'best-match' : ''}">
+                        ${isBest ? '<div style="position: absolute; top: 15px; right: 20px; font-size: 1.5em;">👑 BEST MATCH</div>' : ''}
+                        
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <div class="balance-indicator">${fairnessEmoji}</div>
+                            <div style="font-size: 1.3em; font-weight: 700;">
+                                Match Balance: ${fairnessPercent}%
+                                <span class="fairness-badge ${fairnessClass}">${
+                                    result.fairnessScore >= 0.9 ? 'Perfect!' : 
+                                    result.fairnessScore >= 0.7 ? 'Good' : 
+                                    'Unbalanced'
+                                }</span>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 30px; align-items: center;">
+                            <div style="text-align: center;">
+                                <div class="team-display">
+                                    <span>${result.team1[0]} & ${result.team1[1]}</span>
+                                </div>
+                                <div class="team-elo">Average ELO: ${result.team1AvgElo}</div>
+                                ${result.team1Synergy > 0 ? `<div style="font-size: 0.85em; color: #43e97b; margin-top: 5px;">Team Win Rate: ${(result.team1Synergy * 100).toFixed(1)}%</div>` : ''}
+                            </div>
+                            
+                            <div style="text-align: center;">
+                                <div style="font-size: 1.5em; font-weight: 300; color: rgba(255, 255, 255, 0.5);">VS</div>
+                            </div>
+                            
+                            <div style="text-align: center;">
+                                <div class="team-display">
+                                    <span>${result.team2[0]} & ${result.team2[1]}</span>
+                                </div>
+                                <div class="team-elo">Average ELO: ${result.team2AvgElo}</div>
+                                ${result.team2Synergy > 0 ? `<div style="font-size: 0.85em; color: #43e97b; margin-top: 5px;">Team Win Rate: ${(result.team2Synergy * 100).toFixed(1)}%</div>` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="fairness-meter">
+                            <div class="fairness-optimal"></div>
+                            <div class="fairness-fill" style="width: ${team1WinPercent}%; background: linear-gradient(90deg, rgba(245, 87, 108, 0.8) 0%, rgba(67, 233, 123, 0.8) 50%, rgba(245, 87, 108, 0.8) 100%);"></div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.9em;">
+                            <span>${team1WinPercent}%</span>
+                            <span style="color: rgba(255, 255, 255, 0.6);">Win Probability</span>
+                            <span>${team2WinPercent}%</span>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="select-match-btn" onclick="selectFairMatch([
+                                '${result.team1[0]}', '${result.team1[1]}', 
+                                '${result.team2[0]}', '${result.team2[1]}'
+                            ])">
+                                ${isBest ? '🎯 Play This Match!' : 'Select This Match'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            
+            // Add summary
+            const bestMatch = combinationResults[0];
+            html += `
+                <div style="margin-top: 30px; padding: 25px; background: rgba(255, 255, 255, 0.05); border-radius: 15px; text-align: center;">
+                    <h3 style="margin-bottom: 15px;">📊 Match Analysis Summary</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        <div>
+                            <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6); margin-bottom: 5px;">Most Balanced</div>
+                            <div style="font-size: 1.2em; font-weight: 700;">${bestMatch.team1[0]} & ${bestMatch.team1[1]}<br>vs<br>${bestMatch.team2[0]} & ${bestMatch.team2[1]}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6); margin-bottom: 5px;">Balance Score</div>
+                            <div style="font-size: 2em; font-weight: 900; color: #43e97b;">${(bestMatch.fairnessScore * 100).toFixed(1)}%</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6); margin-bottom: 5px;">ELO Difference</div>
+                            <div style="font-size: 1.8em; font-weight: 700;">${bestMatch.eloDiff}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            resultDiv.innerHTML = html;
+        }
+
+        // 3. Function to auto-fill match predictor with selected teams
+        function selectFairMatch(players) {
+            // Auto-fill the match predictor with the selected teams
+            document.getElementById('team1Player1').value = players[0];
+            document.getElementById('team1Player2').value = players[1];
+            document.getElementById('team2Player1').value = players[2];
+            document.getElementById('team2Player2').value = players[3];
+            
+            // Update the prediction
+            updatePrediction();
+            
+            // Scroll to the match predictor
+            document.getElementById('matchPredictor').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Visual feedback
+            showSuccessAnimation(window.innerWidth / 2, window.innerHeight / 2);
+        }
+
+        // 4. Modified updateMatchPredictorOptions to also update Fair Match Composer
+        function updateMatchPredictorOptions() {
+            const players = Object.keys(allData.playerStats)
+                .filter(player => allData.playerStats[player].gamesPlayed >= 1)
+                .sort();
+            
+            const selects = ['team1Player1', 'team1Player2', 'team2Player1', 'team2Player2'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                const currentValue = select.value;
+                select.innerHTML = selectId.includes('Player2') ? 
+                    '<option value="">Select Player 2 (Optional)</option>' :
+                    '<option value="">Select Player 1</option>';
+                
+                players.forEach(player => {
+                    select.innerHTML += `<option value="${player}">${player}</option>`;
+                });
+                
+                select.value = currentValue;
+            });
+            
+            // Also update fair match composer selects
+            updateFairMatchComposerOptions();
+        }
+
+        // 5. Added call to updateFairMatchComposerOptions in updateDashboardWithData
+        // (Inside the updateDashboardWithData function)
+        updateFairMatchComposerOptions();
         
         function updateMatchTypeBreakdown(data) {
             const breakdownDiv = document.getElementById('matchTypeBreakdown');
