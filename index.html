@@ -3916,15 +3916,6 @@
                             <span style="color: rgba(255, 255, 255, 0.6);">Win Probability</span>
                             <span>${team2WinPercent}%</span>
                         </div>
-                        
-                        <div style="text-align: center; margin-top: 20px;">
-                            <button class="select-match-btn" onclick="selectFairMatch([
-                                '${result.team1[0]}', '${result.team1[1]}', 
-                                '${result.team2[0]}', '${result.team2[1]}'
-                            ])">
-                                ${isBest ? '🎯 Play This Match!' : 'Select This Match'}
-                            </button>
-                        </div>
                     </div>
                 `;
             });
@@ -3956,25 +3947,7 @@
             resultDiv.innerHTML = html;
         }
 
-        // 3. Function to auto-fill match predictor with selected teams
-        function selectFairMatch(players) {
-            // Auto-fill the match predictor with the selected teams
-            document.getElementById('team1Player1').value = players[0];
-            document.getElementById('team1Player2').value = players[1];
-            document.getElementById('team2Player1').value = players[2];
-            document.getElementById('team2Player2').value = players[3];
-            
-            // Update the prediction
-            updatePrediction();
-            
-            // Scroll to the match predictor
-            document.getElementById('matchPredictor').scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            // Visual feedback
-            showSuccessAnimation(window.innerWidth / 2, window.innerHeight / 2);
-        }
-
-        // 4. Modified updateMatchPredictorOptions to also update Fair Match Composer
+        // 3. Modified updateMatchPredictorOptions to also update Fair Match Composer
         function updateMatchPredictorOptions() {
             const players = Object.keys(allData.playerStats)
                 .filter(player => allData.playerStats[player].gamesPlayed >= 1)
