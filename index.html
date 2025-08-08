@@ -130,7 +130,7 @@
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border);
             border-radius: 20px;
-            padding: 30px;
+            padding: 15px;
             position: relative;
             overflow: hidden;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -762,6 +762,12 @@
                 font-size: 0.8em;
                 padding: 4px 10px;
             }
+            
+            /* Fix predictor select widths on mobile */
+            .predictor-select {
+                min-width: 120px;
+                font-size: 0.85em;
+            }
         }
         
         /* Custom scrollbar for whole page */
@@ -943,6 +949,7 @@
         /* Predictor Styles */
         .predictor-select {
             width: 100%;
+            min-width: 150px;
             padding: 10px 15px;
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1293,7 +1300,7 @@
                 
                 <!-- Rookies Section -->
                 <div class="card" style="grid-column: span 1;">
-                    <h2>🌟 Rookies (Under 5 Games)</h2>
+                    <h2>🌟 Rookies</h2>
                     <div id="rookieRankings"></div>
                     <div style="margin-top: 15px; font-size: 0.85em; color: rgba(255, 255, 255, 0.5); font-style: italic; text-align: center;">
                         * Players need 5+ games to qualify for main rankings
@@ -1330,7 +1337,7 @@
                 </div>
                 
                 <!-- Season Overview -->
-                <div class="card" id="seasonOverviewCard">
+                <div class="card" id="seasonOverviewCard" style="grid-column: span 2;">
                     <h2>📅 Season Overview</h2>
                     <div id="seasonOverview"></div>
                     <div style="margin-top: 15px; font-size: 0.9em; color: rgba(255, 255, 255, 0.5); text-align: center;">
@@ -2304,7 +2311,7 @@
                 return;
             }
             
-            let html = '<div style="overflow-x: auto;"><table class="player-table rankings-table"><thead><tr><th>Rank</th><th>Player</th><th>W</th><th>L</th><th>Games</th><th>Win Rate</th></tr></thead><tbody>';
+            let html = '<div style="overflow-x: hidden;"><table class="player-table rankings-table" style="width: 100%;"><thead><tr><th>Rank</th><th>Player</th><th>W</th><th>L</th><th>Games</th><th>Win %</th></tr></thead><tbody>';
             
             sortedPlayers.slice(0, 10).forEach((entry, index) => {
                 const [player, stats] = entry;
@@ -2347,7 +2354,7 @@
                 return;
             }
             
-            let html = '<div style="overflow-x: auto;"><table class="player-table rankings-table"><thead><tr><th>Rank</th><th>Player</th><th>W</th><th>L</th><th>Games</th><th>Win Rate</th></tr></thead><tbody>';
+            let html = '<div style="overflow-x: hidden;"><table class="player-table rankings-table" style="width: 100%;"><thead><tr><th>Rank</th><th>Player</th><th>W</th><th>L</th><th>Games</th><th>Win %</th></tr></thead><tbody>';
             
             rookies.forEach((entry, index) => {
                 const [player, stats] = entry;
@@ -2703,7 +2710,7 @@
                 return;
             }
             
-            let html = '<table class="player-table"><thead><tr><th>Season</th><th>Matches</th><th>Total Goals</th><th>Avg Goals/Match</th><th>Active Players</th></tr></thead><tbody>';
+            let html = '<div style="overflow-x: auto;"><table class="player-table" style="width: 100%; table-layout: auto; border-spacing: 0;"><thead><tr><th style="padding: 10px; text-align: left;">Season</th><th style="padding: 10px; text-align: left;">Matches</th><th style="padding: 10px; text-align: left;">Total Goals</th><th style="padding: 10px; text-align: left;">Avg Goals/Match</th><th style="padding: 10px; text-align: left;">Active Players</th></tr></thead><tbody>';
             
             let hasData = false;
             allData.allSeasons.forEach(season => {
@@ -2723,7 +2730,7 @@
                 }
             });
             
-            html += '</tbody></table>';
+            html += '</tbody></table></div>';
             
             if (hasData) {
                 // Add season totals
@@ -3199,7 +3206,7 @@
                 .sort((a, b) => b[1].rating - a[1].rating)
                 .slice(0, 10);
             
-            let html = '<div style="overflow-x: auto;"><table class="player-table elo-table"><thead><tr><th>Rank</th><th>Player</th><th>ELO</th><th>Change</th><th>Games</th></tr></thead><tbody>';
+            let html = '<div style="overflow-x: hidden;"><table class="player-table elo-table" style="width: 100%;"><thead><tr><th>Rank</th><th>Player</th><th>ELO</th><th>Change</th><th>Games</th></tr></thead><tbody>';
             
             eloRankings.forEach(([player, elo], index) => {
                 const stats = dataToUse.playerStats[player];
@@ -3307,6 +3314,9 @@
                 'Sunday': { wins: 0, losses: 0, matches: 0 }
             };
             
+            // Array to collect weekend dates
+            const weekendDates = [];
+            
             // Process matches to get day statistics
             dataToUse.matches.forEach(match => {
                 // Parse date - assuming DD/MM/YYYY format
@@ -3316,6 +3326,17 @@
                         if (parts.length === 3) {
                             const date = new Date(parts[2], parts[1] - 1, parts[0]);
                             const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
+                            
+                            // Log weekend dates
+                            if (dayName === 'Saturday' || dayName === 'Sunday') {
+                                weekendDates.push({
+                                    date: match.date,
+                                    day: dayName,
+                                    matchNumber: match.number,
+                                    teams: `${match.team1.player1}/${match.team1.player2} vs ${match.team2.player1}/${match.team2.player2}`
+                                });
+                            }
+                            
                             if (dayStats[dayName]) {
                                 dayStats[dayName].matches++;
                             }
@@ -3325,6 +3346,20 @@
                     }
                 }
             });
+            
+            // Log all weekend dates
+            if (weekendDates.length > 0) {
+                console.log('\n=== WEEKEND MATCHES ===');
+                console.log(`Found ${weekendDates.length} matches played on weekends:`);
+                weekendDates.forEach(weekend => {
+                    console.log(`${weekend.day}, ${weekend.date} - Match #${weekend.matchNumber}: ${weekend.teams}`);
+                });
+                console.log('======================\n');
+            } else {
+                console.log('\n=== WEEKEND MATCHES ===');
+                console.log('No matches were played on weekends');
+                console.log('======================\n');
+            }
             
             const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
             
@@ -3995,7 +4030,7 @@
             const total = matches1v1 + matches2v1 + matches2v2;
             
             let html = `
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center; margin: 0 auto;">
                     <div style="padding: 20px; background: rgba(120, 119, 198, 0.2); border-radius: 15px; border: 1px solid rgba(120, 119, 198, 0.3); transition: all 0.3s;">
                         <div style="font-size: 2.5em; font-weight: 900; color: #fff; margin-bottom: 5px;">${matches2v2}</div>
                         <div style="font-size: 1em; color: rgba(255, 255, 255, 0.8); font-weight: 600;">2v2 Matches</div>
