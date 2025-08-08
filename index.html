@@ -1071,6 +1071,25 @@
             animation: rivalryFlame 2s ease-in-out infinite;
         }
         
+        /* Custom Scrollbar */
+        #playerSelectorList::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #playerSelectorList::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        #playerSelectorList::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        
+        #playerSelectorList::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
         /* Modal Styles */
         .modal {
             position: fixed;
@@ -1383,9 +1402,70 @@
                 <!-- ELO Ratings -->
                 <div class="card">
                     <h2>📊 ELO Rankings</h2>
-                    <div id="eloRankings"></div>
+                    <div id="eloRankings" style="overflow-x: auto;"></div>
                     <div style="margin-top: 15px; font-size: 0.85em; color: rgba(255, 255, 255, 0.5); font-style: italic; text-align: center;">
                         * Minimum 5 games required for ELO ranking
+                    </div>
+                </div>
+                
+                <!-- ELO History Chart -->
+                <div class="card" style="grid-column: 1 / -1;">
+                    <h2>📈 ELO Rating History</h2>
+                    
+                    <!-- Chart Controls -->
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                            <div style="display: flex; gap: 15px; align-items: center;">
+                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                    <input type="radio" name="eloViewMode" value="date" checked onchange="updateEloHistoryChart()" style="cursor: pointer;">
+                                    <span>By Date</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                    <input type="radio" name="eloViewMode" value="games" onchange="updateEloHistoryChart()" style="cursor: pointer;">
+                                    <span>By Games</span>
+                                </label>
+                            </div>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="showInactivePeriods" checked onchange="updateEloHistoryChart()" style="cursor: pointer;">
+                                <span>Show inactive periods</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Player Selection -->
+                    <div style="margin-bottom: 20px;">
+                        <div style="margin-bottom: 10px; font-weight: 600;">Select Players to Compare:</div>
+                        <div id="eloPlayerCheckboxes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; max-height: 200px; overflow-y: auto; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                            <!-- Checkboxes will be populated here -->
+                        </div>
+                        <div style="margin-top: 10px; display: flex; gap: 10px;">
+                            <button onclick="selectAllEloPlayers()" style="padding: 8px 16px; background: rgba(67, 233, 123, 0.2); border: 1px solid rgba(67, 233, 123, 0.5); color: #43e97b; border-radius: 5px; cursor: pointer;">Select All</button>
+                            <button onclick="deselectAllEloPlayers()" style="padding: 8px 16px; background: rgba(245, 87, 108, 0.2); border: 1px solid rgba(245, 87, 108, 0.5); color: #f5576c; border-radius: 5px; cursor: pointer;">Clear All</button>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="eloHistoryChart"></canvas>
+                    </div>
+                    <div id="eloMilestones" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- ELO Analytics -->
+                <div class="card" style="grid-column: 1 / -1;">
+                    <h2>🎯 ELO Analytics & Insights</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                        <div id="eloMomentum" style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 20px;">
+                            <h3 style="margin-bottom: 15px; color: #43e97b;">🚀 Rising Stars</h3>
+                            <div id="eloMomentumContent"></div>
+                        </div>
+                        <div id="eloUpsets" style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 20px;">
+                            <h3 style="margin-bottom: 15px; color: #f5576c;">⚡ Biggest Upsets</h3>
+                            <div id="eloUpsetsContent"></div>
+                        </div>
+                        <div id="eloTiers" style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 20px;">
+                            <h3 style="margin-bottom: 15px; color: #764ba2;">🏅 Skill Tiers</h3>
+                            <div id="eloTiersContent"></div>
+                        </div>
                     </div>
                 </div>
                 
@@ -1464,30 +1544,99 @@
                 </div>
 
                 <!-- Match Predictor -->
-                <div class="card">
+                <div class="card" style="grid-column: 1 / -1;">
                     <h2>🔮 Match Predictor</h2>
                     <div id="matchPredictor">
-                        <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center; margin-bottom: 20px;">
-                            <div>
-                                <label style="display: block; margin-bottom: 10px; color: rgba(255, 255, 255, 0.7); font-size: 0.9em;">Team 1</label>
-                                <select id="team1Player1" class="predictor-select" onchange="updatePrediction()">
-                                    <option value="">Select Player 1</option>
-                                </select>
-                                <select id="team1Player2" class="predictor-select" onchange="updatePrediction()" style="margin-top: 10px;">
-                                    <option value="">Select Player 2 (Optional)</option>
-                                </select>
-                            </div>
-                            <div style="font-size: 2em; color: rgba(255, 255, 255, 0.5);">VS</div>
-                            <div>
-                                <label style="display: block; margin-bottom: 10px; color: rgba(255, 255, 255, 0.7); font-size: 0.9em;">Team 2</label>
-                                <select id="team2Player1" class="predictor-select" onchange="updatePrediction()">
-                                    <option value="">Select Player 1</option>
-                                </select>
-                                <select id="team2Player2" class="predictor-select" onchange="updatePrediction()" style="margin-top: 10px;">
-                                    <option value="">Select Player 2 (Optional)</option>
-                                </select>
+                        <!-- Simple Foosball Table -->
+                        <div style="position: relative; background: linear-gradient(180deg, #2d5a2d 0%, #1a472a 50%, #2d5a2d 100%); border-radius: 15px; padding: 40px; box-shadow: inset 0 0 30px rgba(0,0,0,0.5), 0 5px 20px rgba(0,0,0,0.3); margin-bottom: 20px; min-height: 250px;">
+                            
+                            <!-- Center Line -->
+                            <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: rgba(255,255,255,0.2);"></div>
+                            
+                            <!-- Center Circle -->
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; border: 2px solid rgba(255,255,255,0.2); border-radius: 50%;"></div>
+                            
+                            <!-- Player Positions -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; height: 100%; position: relative;">
+                                
+                                <!-- Team 1 (Blue) -->
+                                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 30px;">
+                                    <h3 style="color: #4299e1; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px;">Team Blue</h3>
+                                    <div style="display: flex; gap: 60px;">
+                                        <!-- Player 1 -->
+                                        <div id="team1Player1Slot" 
+                                             onclick="openPlayerSelector(1, 1)" 
+                                             ondrop="handleDrop(event, 1, 1)" 
+                                             ondragover="handleDragOver(event)" 
+                                             ondragleave="handleDragLeave(event)"
+                                             style="width: 100px; height: 100px; border-radius: 50%; background: rgba(66, 153, 225, 0.2); border: 3px solid #4299e1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; position: relative;" 
+                                             onmouseover="this.style.transform='scale(1.1)'" 
+                                             onmouseout="this.style.transform='scale(1)'">
+                                            <div style="font-size: 2em;">👤</div>
+                                            <div style="font-size: 0.8em; margin-top: 5px;">Select</div>
+                                        </div>
+                                        <!-- Player 2 -->
+                                        <div id="team1Player2Slot" 
+                                             onclick="openPlayerSelector(1, 2)" 
+                                             ondrop="handleDrop(event, 1, 2)" 
+                                             ondragover="handleDragOver(event)" 
+                                             ondragleave="handleDragLeave(event)"
+                                             style="width: 100px; height: 100px; border-radius: 50%; background: rgba(66, 153, 225, 0.2); border: 3px dashed #4299e1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; opacity: 0.7; position: relative;" 
+                                             onmouseover="this.style.transform='scale(1.1)'" 
+                                             onmouseout="this.style.transform='scale(1)'">
+                                            <div style="font-size: 2em;">➕</div>
+                                            <div style="font-size: 0.8em; margin-top: 5px;">Optional</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- VS -->
+                                <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 10;">
+                                    <div style="background: radial-gradient(circle, rgba(255,215,0,0.4), transparent); padding: 25px; border-radius: 50%;">
+                                        <div style="font-size: 2.5em; font-weight: 900; color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.8);">VS</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Team 2 (Red) -->
+                                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 30px;">
+                                    <h3 style="color: #fc8181; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px;">Team Red</h3>
+                                    <div style="display: flex; gap: 60px;">
+                                        <!-- Player 1 -->
+                                        <div id="team2Player1Slot" 
+                                             onclick="openPlayerSelector(2, 1)" 
+                                             ondrop="handleDrop(event, 2, 1)" 
+                                             ondragover="handleDragOver(event)" 
+                                             ondragleave="handleDragLeave(event)"
+                                             style="width: 100px; height: 100px; border-radius: 50%; background: rgba(245, 101, 101, 0.2); border: 3px solid #fc8181; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; position: relative;" 
+                                             onmouseover="this.style.transform='scale(1.1)'" 
+                                             onmouseout="this.style.transform='scale(1)'">
+                                            <div style="font-size: 2em;">👤</div>
+                                            <div style="font-size: 0.8em; margin-top: 5px;">Select</div>
+                                        </div>
+                                        <!-- Player 2 -->
+                                        <div id="team2Player2Slot" 
+                                             onclick="openPlayerSelector(2, 2)" 
+                                             ondrop="handleDrop(event, 2, 2)" 
+                                             ondragover="handleDragOver(event)" 
+                                             ondragleave="handleDragLeave(event)"
+                                             style="width: 100px; height: 100px; border-radius: 50%; background: rgba(245, 101, 101, 0.2); border: 3px dashed #fc8181; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; opacity: 0.7; position: relative;" 
+                                             onmouseover="this.style.transform='scale(1.1)'" 
+                                             onmouseout="this.style.transform='scale(1)'">
+                                            <div style="font-size: 2em;">➕</div>
+                                            <div style="font-size: 0.8em; margin-top: 5px;">Optional</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                        
+                        <!-- Prediction Button -->
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <button onclick="updatePrediction()" style="padding: 15px 40px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 30px; font-size: 1.1em; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                ⚡ Calculate Match Prediction
+                            </button>
+                        </div>
+                        
                         <div id="predictionResult"></div>
                     </div>
                 </div>
@@ -2128,6 +2277,7 @@
                         }
                         
                         allData.headToHead[p1][p2].matches++;
+                        allData.headToHead[p2][p1].matches++;
                         if (match.winner === 'team1') {
                             allData.headToHead[p1][p2].wins++;
                             allData.headToHead[p2][p1].losses++;
@@ -2192,17 +2342,58 @@
                     description: "10+ game win streak" 
                 });
                 
-                // ELO achievements
+                // ELO-based achievements
+                const eloHistory = allData.eloRatings[player] ? allData.eloRatings[player].history : [];
+                const startingElo = eloHistory.length > 0 ? eloHistory[0] : 1500;
+                const peakElo = eloHistory.length > 0 ? Math.max(...eloHistory) : 1500;
+                const lowestElo = eloHistory.length > 0 ? Math.min(...eloHistory) : 1500;
+                
                 if (elo >= 1600) allData.achievements[player].push({ 
                     name: "Elite Player", 
                     icon: "👑", 
-                    description: "1600+ ELO rating" 
+                    description: "Reach 1600+ ELO" 
                 });
                 if (elo >= 1700) allData.achievements[player].push({ 
                     name: "Grandmaster", 
                     icon: "🎯", 
-                    description: "1700+ ELO rating" 
+                    description: "Reach 1700+ ELO" 
                 });
+                if (elo >= 1800) allData.achievements[player].push({ 
+                    name: "Champion", 
+                    icon: "🏅", 
+                    description: "Reach 1800+ ELO" 
+                });
+                
+                // ELO progression achievements
+                if (elo - startingElo >= 100) allData.achievements[player].push({ 
+                    name: "Rating Climber", 
+                    icon: "📈", 
+                    description: "Gain 100+ ELO from start" 
+                });
+                if (elo - startingElo >= 200) allData.achievements[player].push({ 
+                    name: "ELO Master", 
+                    icon: "🚀", 
+                    description: "Gain 200+ ELO from start" 
+                });
+                
+                // Comeback achievement
+                if (lowestElo < startingElo - 50 && elo > startingElo) allData.achievements[player].push({ 
+                    name: "Comeback Kid", 
+                    icon: "💪", 
+                    description: "Recover from 50+ ELO deficit" 
+                });
+                
+                // Consistency achievement
+                if (eloHistory.length >= 20) {
+                    const recentElo = eloHistory.slice(-20);
+                    const maxRecent = Math.max(...recentElo);
+                    const minRecent = Math.min(...recentElo);
+                    if (maxRecent - minRecent <= 50) allData.achievements[player].push({ 
+                        name: "Consistency King", 
+                        icon: "⚖️", 
+                        description: "Maintain ELO within 50 points for 20+ games" 
+                    });
+                }
                 
                 // Goal-based achievements
                 if (stats.goalDiff >= 50) allData.achievements[player].push({ 
@@ -2964,10 +3155,8 @@
             // Get top player (from qualified players only)
             const sortedPlayers = Object.entries(dataToUse.playerStats)
                 .filter(([player, stats]) => {
-                    // Basic validation and minimum games for top player
-                    // Lower threshold when filtering by season
-                    const minGames = data ? 1 : 5;
-                    return player && stats.gamesPlayed >= minGames;
+                    // Always require 5 games minimum for Player Rankings
+                    return player && stats.gamesPlayed >= 5;
                 })
                 .sort((a, b) => {
                     if (b[1].winRate !== a[1].winRate) {
@@ -3206,14 +3395,13 @@
                 .sort((a, b) => b[1].rating - a[1].rating)
                 .slice(0, 10);
             
-            let html = '<div style="overflow-x: hidden;"><table class="player-table elo-table" style="width: 100%;"><thead><tr><th>Rank</th><th>Player</th><th>ELO</th><th>Change</th><th>Games</th></tr></thead><tbody>';
+            let html = '<div><table class="player-table elo-table" style="width: 100%; table-layout: fixed;"><thead><tr><th style="width: 15%;">Rank</th><th style="width: 25%;">Player</th><th style="width: 15%;">ELO</th><th style="width: 15%;">Peak</th><th style="width: 15%;">Form</th><th style="width: 15%;">Tier</th></tr></thead><tbody>';
             
             eloRankings.forEach(([player, elo], index) => {
                 const stats = dataToUse.playerStats[player];
-                const ratingChange = elo.history && elo.history.length > 1 ? 
-                    elo.rating - elo.history[elo.history.length - 2] : 0;
-                const changeClass = ratingChange > 0 ? 'elo-up' : ratingChange < 0 ? 'elo-down' : '';
-                const changeSymbol = ratingChange > 0 ? '↑' : ratingChange < 0 ? '↓' : '→';
+                const peakElo = Math.max(...elo.history);
+                const recentForm = calculateRecentForm(elo.history);
+                const tier = getEloTier(elo.rating);
                 const rankClass = index < 3 ? `rank-${index + 1}` : '';
                 
                 html += `
@@ -3221,14 +3409,487 @@
                         <td class="${rankClass}">${index + 1}</td>
                         <td><span class="clickable-player" onclick="showPlayerProfile('${player}')">${player}</span></td>
                         <td style="font-weight: 700;">${elo.rating}</td>
-                        <td class="elo-change ${changeClass}">${changeSymbol} ${Math.abs(ratingChange)}</td>
-                        <td>${stats.gamesPlayed}</td>
+                        <td style="color: ${elo.rating === peakElo ? '#43e97b' : 'rgba(255,255,255,0.6)'}">${peakElo}</td>
+                        <td>${recentForm}</td>
+                        <td>${tier.badge}</td>
                     </tr>
                 `;
             });
             
             html += '</tbody></table></div>';
             eloDiv.innerHTML = html;
+            
+            // Update ELO player select options
+            updateEloPlayerSelect();
+            // Update ELO analytics
+            updateEloAnalytics();
+        }
+        
+        function getEloTier(rating) {
+            if (rating >= 1700) return { name: 'Diamond', badge: '💎', color: '#b9f2ff' };
+            if (rating >= 1600) return { name: 'Platinum', badge: '🏆', color: '#e5e4e2' };
+            if (rating >= 1500) return { name: 'Gold', badge: '🥇', color: '#ffd700' };
+            if (rating >= 1400) return { name: 'Silver', badge: '🥈', color: '#c0c0c0' };
+            if (rating >= 1300) return { name: 'Bronze', badge: '🥉', color: '#cd7f32' };
+            return { name: 'Iron', badge: '⚙️', color: '#808080' };
+        }
+        
+        function calculateRecentForm(history) {
+            if (!history || history.length < 2) return '→';
+            const recent = history.slice(-5);
+            let trend = 0;
+            for (let i = 1; i < recent.length; i++) {
+                trend += recent[i] - recent[i-1];
+            }
+            if (trend > 20) return '🔥';
+            if (trend > 10) return '↑';
+            if (trend < -20) return '❄️';
+            if (trend < -10) return '↓';
+            return '→';
+        }
+        
+        function updateEloPlayerSelect() {
+            const checkboxContainer = document.getElementById('eloPlayerCheckboxes');
+            if (!checkboxContainer) return;
+            
+            const players = Object.entries(allData.eloRatings)
+                .filter(([player, _]) => allData.playerStats[player] && allData.playerStats[player].gamesPlayed >= 3)
+                .sort((a, b) => b[1].rating - a[1].rating)
+                .map(([player, elo]) => ({ name: player, rating: elo.rating }));
+            
+            let html = '';
+            players.forEach(player => {
+                html += `
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px; border-radius: 5px; transition: background 0.2s;" 
+                           onmouseover="this.style.background='rgba(255,255,255,0.1)'" 
+                           onmouseout="this.style.background='transparent'">
+                        <input type="checkbox" 
+                               id="elo-player-${player.name}" 
+                               value="${player.name}" 
+                               onchange="updateEloHistoryChart()" 
+                               style="cursor: pointer;">
+                        <span style="font-size: 0.9em;">${player.name}</span>
+                        <span style="font-size: 0.8em; color: rgba(255, 255, 255, 0.5);">(${player.rating})</span>
+                    </label>
+                `;
+            });
+            
+            checkboxContainer.innerHTML = html;
+        }
+        
+        function selectAllEloPlayers() {
+            const checkboxes = document.querySelectorAll('#eloPlayerCheckboxes input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+            updateEloHistoryChart();
+        }
+        
+        function deselectAllEloPlayers() {
+            const checkboxes = document.querySelectorAll('#eloPlayerCheckboxes input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+            updateEloHistoryChart();
+        }
+        
+        function updateEloHistoryChart() {
+            const checkboxes = document.querySelectorAll('#eloPlayerCheckboxes input[type="checkbox"]:checked');
+            const selectedPlayers = Array.from(checkboxes).map(cb => cb.value);
+            const viewMode = document.querySelector('input[name="eloViewMode"]:checked').value;
+            const showInactive = document.getElementById('showInactivePeriods').checked;
+            
+            if (selectedPlayers.length === 0) {
+                const ctx = document.getElementById('eloHistoryChart');
+                if (chartInstances.eloHistory) {
+                    chartInstances.eloHistory.destroy();
+                    delete chartInstances.eloHistory;
+                }
+                ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+                document.getElementById('eloMilestones').innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.5);">Select players to view their ELO history</div>';
+                return;
+            }
+            
+            const datasets = [];
+            const colors = ['#43e97b', '#f5576c', '#764ba2', '#f093fb', '#feca57', '#54a0ff', '#ff6b6b', '#4ecdc4', '#95e1d3', '#f38181'];
+            let labels = [];
+            
+            if (viewMode === 'date') {
+                // Create date-based chart
+                const matchDates = [];
+                const playerHistories = {};
+                
+                // Collect all match dates and build player histories by date
+                allData.matches.forEach((match, index) => {
+                    if (match.date && match.date !== 'No date') {
+                        matchDates.push({ date: match.date, index: index });
+                    }
+                });
+                
+                // Build data for each selected player
+                selectedPlayers.forEach((player, playerIndex) => {
+                    if (allData.eloRatings[player] && allData.eloRatings[player].history) {
+                        const history = allData.eloRatings[player].history;
+                        const dataPoints = [];
+                        let currentRating = history[0] || 1500;
+                        let historyIndex = 0;
+                        
+                        // Track player's participation in matches
+                        matchDates.forEach(({date, index: matchIndex}) => {
+                            // Check if player participated in this match
+                            const match = allData.matches[matchIndex];
+                            const participated = 
+                                match.team1.player1 === player || 
+                                match.team1.player2 === player ||
+                                match.team2.player1 === player || 
+                                match.team2.player2 === player;
+                            
+                            if (participated && historyIndex < history.length) {
+                                currentRating = history[historyIndex];
+                                historyIndex++;
+                            }
+                            
+                            // Add data point (flatline if not participating and showInactive is true)
+                            if (showInactive || participated) {
+                                dataPoints.push(currentRating);
+                            } else {
+                                dataPoints.push(null); // Gap in line
+                            }
+                        });
+                        
+                        datasets.push({
+                            label: player,
+                            data: dataPoints,
+                            borderColor: colors[playerIndex % colors.length],
+                            backgroundColor: colors[playerIndex % colors.length] + '20',
+                            tension: 0.3,
+                            borderWidth: 2,
+                            pointRadius: 2,
+                            pointHoverRadius: 5,
+                            spanGaps: showInactive // Connect lines across gaps if showing inactive
+                        });
+                    }
+                });
+                
+                // Create date labels
+                labels = matchDates.map(m => m.date);
+                
+            } else {
+                // Game-based view (original)
+                let maxGames = 0;
+                selectedPlayers.forEach((player, index) => {
+                    if (allData.eloRatings[player] && allData.eloRatings[player].history) {
+                        const history = allData.eloRatings[player].history;
+                        maxGames = Math.max(maxGames, history.length);
+                        datasets.push({
+                            label: player,
+                            data: history,
+                            borderColor: colors[index % colors.length],
+                            backgroundColor: colors[index % colors.length] + '20',
+                            tension: 0.3,
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointHoverRadius: 6
+                        });
+                    }
+                });
+                labels = Array.from({length: maxGames}, (_, i) => `Game ${i + 1}`);
+            }
+            
+            const ctx = document.getElementById('eloHistoryChart').getContext('2d');
+            
+            if (chartInstances.eloHistory) {
+                chartInstances.eloHistory.destroy();
+            }
+            
+            chartInstances.eloHistory = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: { size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    const change = context.dataIndex > 0 ? 
+                                        value - context.dataset.data[context.dataIndex - 1] : 0;
+                                    const changeStr = change > 0 ? `+${change}` : `${change}`;
+                                    return `${label}: ${value} (${changeStr})`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'ELO Rating',
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            },
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: viewMode === 'date' ? 'Date' : 'Games Played',
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            },
+                            ticks: { 
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                maxRotation: 45,
+                                minRotation: 45,
+                                maxTicksLimit: viewMode === 'date' ? 20 : 30,
+                                callback: function(value, index) {
+                                    if (viewMode === 'date') {
+                                        // Show fewer date labels for readability
+                                        const label = this.getLabelForValue(value);
+                                        if (index % Math.ceil(labels.length / 20) === 0) {
+                                            return label;
+                                        }
+                                        return '';
+                                    }
+                                    return this.getLabelForValue(value);
+                                }
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+            
+            // Update milestones
+            updateEloMilestones(selectedPlayers);
+        }
+        
+        function updateEloMilestones(players) {
+            const milestonesDiv = document.getElementById('eloMilestones');
+            let html = '<h4 style="margin-bottom: 15px;">📊 Player Statistics</h4>';
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
+            
+            players.forEach(player => {
+                const elo = allData.eloRatings[player];
+                if (elo && elo.history) {
+                    const peak = Math.max(...elo.history);
+                    const lowest = Math.min(...elo.history);
+                    const volatility = Math.round(Math.sqrt(elo.history.reduce((sum, val, i, arr) => {
+                        if (i === 0) return 0;
+                        return sum + Math.pow(val - arr[i-1], 2);
+                    }, 0) / (elo.history.length - 1)));
+                    
+                    html += `
+                        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
+                            <div style="font-weight: 700; margin-bottom: 10px;">${player}</div>
+                            <div style="font-size: 0.9em; color: rgba(255,255,255,0.7);">
+                                <div>Current: <span style="color: #fff; font-weight: 600;">${elo.rating}</span></div>
+                                <div>Peak: <span style="color: #43e97b;">${peak}</span></div>
+                                <div>Lowest: <span style="color: #f5576c;">${lowest}</span></div>
+                                <div>Volatility: <span style="color: #764ba2;">${volatility}</span></div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            html += '</div>';
+            milestonesDiv.innerHTML = html;
+        }
+        
+        function updateEloAnalytics() {
+            updateEloMomentum();
+            updateEloUpsets();
+            updateEloTiers();
+        }
+        
+        function updateEloMomentum() {
+            const momentumDiv = document.getElementById('eloMomentumContent');
+            
+            // Calculate momentum for ALL players (don't slice)
+            const momentum = Object.entries(allData.eloRatings)
+                .filter(([player, elo]) => {
+                    return allData.playerStats[player] && 
+                           allData.playerStats[player].gamesPlayed >= 5 &&
+                           elo.history && elo.history.length >= 5;
+                })
+                .map(([player, elo]) => {
+                    const recent = elo.history.slice(-5);
+                    const change = recent[recent.length - 1] - recent[0];
+                    const avgChange = change / 5;
+                    return { player, change, avgChange, current: elo.rating };
+                })
+                .sort((a, b) => b.change - a.change);
+            
+            // Create scrollable container showing ALL players
+            let html = '<div style="max-height: 340px; overflow-y: auto; padding-right: 5px;">';
+            momentum.forEach((item, index) => {
+                const icon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🌟';
+                const bgOpacity = Math.max(0.02, 0.1 - index * 0.01);
+                const changeColor = item.change > 0 ? '#43e97b' : item.change < 0 ? '#f5576c' : 'rgba(255,255,255,0.6)';
+                const changeText = item.change > 0 ? `+${item.change}` : `${item.change}`;
+                
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(67, 233, 123, ${bgOpacity}); border-radius: 8px; margin-bottom: 10px;">
+                        <div>
+                            <span style="font-size: 1.2em; margin-right: 10px;">${icon}</span>
+                            <span class="clickable-player" onclick="showPlayerProfile('${item.player}')" style="font-weight: 600;">${item.player}</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="color: ${changeColor}; font-weight: 700;">${changeText}</div>
+                            <div style="font-size: 0.8em; color: rgba(255,255,255,0.6);">Last 5 games</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            if (momentum.length === 0) {
+                html = '<div style="text-align: center; color: rgba(255,255,255,0.5);">Not enough data</div>';
+            }
+            
+            momentumDiv.innerHTML = html;
+        }
+        
+        function updateEloUpsets() {
+            const upsetsDiv = document.getElementById('eloUpsetsContent');
+            const upsets = [];
+            
+            // Find biggest upsets from match history - using historical ELO at time of match
+            allData.matches.forEach((match, matchIndex) => {
+                const team1Players = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown');
+                const team2Players = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown');
+                
+                if (team1Players.length > 0 && team2Players.length > 0) {
+                    // Use historical ELO if available, otherwise use current
+                    const getHistoricalElo = (player, index) => {
+                        if (allData.eloRatings[player] && allData.eloRatings[player].history) {
+                            // Use ELO at time of match if history is available
+                            const histIndex = Math.min(index, allData.eloRatings[player].history.length - 1);
+                            return histIndex >= 0 ? allData.eloRatings[player].history[histIndex] : 1500;
+                        }
+                        return 1500;
+                    };
+                    
+                    const team1Elo = team1Players.reduce((sum, p) => {
+                        return sum + getHistoricalElo(p, matchIndex);
+                    }, 0) / team1Players.length;
+                    
+                    const team2Elo = team2Players.reduce((sum, p) => {
+                        return sum + getHistoricalElo(p, matchIndex);
+                    }, 0) / team2Players.length;
+                    
+                    const eloDiff = Math.abs(team1Elo - team2Elo);
+                    const underdog = team1Elo < team2Elo ? 'team1' : 'team2';
+                    const favorite = underdog === 'team1' ? 'team2' : 'team1';
+                    
+                    // Lower threshold to 50 ELO difference to catch more upsets
+                    if (eloDiff > 50 && match.winner === underdog) {
+                        upsets.push({
+                            match,
+                            eloDiff: Math.round(eloDiff),
+                            underdogTeam: underdog === 'team1' ? team1Players : team2Players,
+                            favoriteTeam: underdog === 'team1' ? team2Players : team1Players,
+                            underdogElo: Math.round(underdog === 'team1' ? team1Elo : team2Elo),
+                            favoriteElo: Math.round(underdog === 'team1' ? team2Elo : team1Elo)
+                        });
+                    }
+                }
+            });
+            
+            upsets.sort((a, b) => b.eloDiff - a.eloDiff);
+            const topUpsets = upsets.slice(0, 3);
+            
+            let html = '';
+            topUpsets.forEach((upset, index) => {
+                html += `
+                    <div style="padding: 10px; background: rgba(245, 87, 108, ${0.1 - index * 0.02}); border-radius: 8px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span style="font-weight: 600;">⚡ ${upset.eloDiff} ELO Upset</span>
+                            <span style="font-size: 0.8em; color: rgba(255,255,255,0.6);">${upset.match.date || ''}</span>
+                        </div>
+                        <div style="font-size: 0.9em;">
+                            <span style="color: #43e97b;">${upset.underdogTeam.join(' & ')} (${upset.underdogElo})</span>
+                            <span style="color: rgba(255,255,255,0.6);"> beat </span>
+                            <span style="color: #f5576c;">${upset.favoriteTeam.join(' & ')} (${upset.favoriteElo})</span>
+                        </div>
+                        <div style="font-size: 0.8em; margin-top: 5px; color: rgba(255,255,255,0.5);">
+                            Score: ${upset.match.team1.score}-${upset.match.team2.score}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            if (topUpsets.length === 0) {
+                html = '<div style="text-align: center; color: rgba(255,255,255,0.5);">No major upsets found</div>';
+            }
+            
+            upsetsDiv.innerHTML = html;
+        }
+        
+        function updateEloTiers() {
+            const tiersDiv = document.getElementById('eloTiersContent');
+            
+            const tiers = {
+                'Diamond': { players: [], tier: getEloTier(1700) },
+                'Platinum': { players: [], tier: getEloTier(1600) },
+                'Gold': { players: [], tier: getEloTier(1500) },
+                'Silver': { players: [], tier: getEloTier(1400) },
+                'Bronze': { players: [], tier: getEloTier(1300) },
+                'Iron': { players: [], tier: getEloTier(1200) }
+            };
+            
+            Object.entries(allData.eloRatings).forEach(([player, elo]) => {
+                if (allData.playerStats[player] && allData.playerStats[player].gamesPlayed >= 5) {
+                    const tier = getEloTier(elo.rating);
+                    if (tiers[tier.name]) {
+                        tiers[tier.name].players.push(player);
+                    }
+                }
+            });
+            
+            let html = '';
+            Object.entries(tiers).forEach(([tierName, data]) => {
+                if (data.players.length > 0) {
+                    html += `
+                        <div style="margin-bottom: 15px;">
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <span style="font-size: 1.5em; margin-right: 10px;">${data.tier.badge}</span>
+                                <span style="font-weight: 700;">${tierName}</span>
+                                <span style="margin-left: auto; color: rgba(255,255,255,0.6); font-size: 0.9em;">${data.players.length} player${data.players.length > 1 ? 's' : ''}</span>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                ${data.players.map(p => `
+                                    <span class="clickable-player" onclick="showPlayerProfile('${p}')" 
+                                          style="background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 15px; font-size: 0.85em;">
+                                        ${p}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            if (html === '') {
+                html = '<div style="text-align: center; color: rgba(255,255,255,0.5);">Not enough players with 5+ games</div>';
+            }
+            
+            tiersDiv.innerHTML = html;
         }
         
         function updateAchievementShowcase() {
@@ -3643,9 +4304,20 @@
                             allData.headToHead[player1][player2] : { wins: 0, losses: 0, matches: 0 };
                         if (h2hData.matches > 0) {
                             const winRate = h2hData.wins / h2hData.matches;
-                            const bgColor = winRate > 0.5 ? 
-                                `rgba(67, 233, 123, ${winRate - 0.5})` : 
-                                `rgba(245, 87, 108, ${0.5 - winRate})`;
+                            // Fixed color logic: wins > losses = green, losses > wins = red
+                            let bgColor;
+                            if (h2hData.wins > h2hData.losses) {
+                                // More wins = green (intensity based on win margin)
+                                const intensity = Math.min((h2hData.wins - h2hData.losses) / h2hData.matches * 0.5, 0.4);
+                                bgColor = `rgba(67, 233, 123, ${intensity})`;
+                            } else if (h2hData.losses > h2hData.wins) {
+                                // More losses = red (intensity based on loss margin)
+                                const intensity = Math.min((h2hData.losses - h2hData.wins) / h2hData.matches * 0.5, 0.4);
+                                bgColor = `rgba(245, 87, 108, ${intensity})`;
+                            } else {
+                                // Equal wins and losses = neutral
+                                bgColor = 'rgba(255, 255, 255, 0.05)';
+                            }
                             html += `
                                 <div class="h2h-cell" style="background: ${bgColor};" 
                                      title="${player1} vs ${player2}: ${h2hData.wins}W-${h2hData.losses}L">
@@ -3666,42 +4338,331 @@
         }
         
         function updateMatchPredictorOptions() {
-            const players = Object.keys(allData.playerStats)
-                .filter(player => allData.playerStats[player].gamesPlayed >= 1) // Lowered from 3 to 1
-                .sort();
+            // Just update fair match composer - match predictor uses the new modal system
+            updateFairMatchComposerOptions();
+        }
+        
+        // Global variables to track selected players
+        let selectedTeam1 = [];
+        let selectedTeam2 = [];
+        let currentSelectingTeam = null;
+        let currentSelectingSlot = null;
+        
+        function openPlayerSelector(team, slot) {
+            currentSelectingTeam = team;
+            currentSelectingSlot = slot;
             
-            const selects = ['team1Player1', 'team1Player2', 'team2Player1', 'team2Player2'];
-            selects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                const currentValue = select.value;
-                select.innerHTML = selectId.includes('Player2') ? 
-                    '<option value="">Select Player 2 (Optional)</option>' :
-                    '<option value="">Select Player 1</option>';
+            const modal = document.getElementById('playerSelectorModal');
+            const title = document.getElementById('playerSelectorTitle');
+            const list = document.getElementById('playerSelectorList');
+            
+            title.textContent = `Select Player for ${team === 1 ? 'Team Blue' : 'Team Red'} - Position ${slot}`;
+            
+            // Get available players
+            const players = Object.entries(allData.playerStats)
+                .filter(([player, stats]) => stats.gamesPlayed >= 1)
+                .map(([player, stats]) => ({
+                    name: player,
+                    elo: allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500,
+                    wins: stats.wins,
+                    losses: stats.losses,
+                    winRate: stats.winRate
+                }))
+                .sort((a, b) => b.elo - a.elo);
+            
+            let html = '';
+            players.forEach(player => {
+                const isOnSameTeam = (team === 1 && selectedTeam1.includes(player.name)) || 
+                                     (team === 2 && selectedTeam2.includes(player.name));
+                const isOnOppositeTeam = (team === 1 && selectedTeam2.includes(player.name)) || 
+                                         (team === 2 && selectedTeam1.includes(player.name));
                 
-                players.forEach(player => {
-                    select.innerHTML += `<option value="${player}">${player}</option>`;
-                });
+                const bgColor = team === 1 ? 'rgba(66, 153, 225, 0.1)' : 'rgba(245, 101, 101, 0.1)';
+                const borderColor = team === 1 ? '#4299e1' : '#fc8181';
                 
-                select.value = currentValue;
+                html += `
+                    <div onclick="${!isOnSameTeam ? `selectPlayer('${player.name}')` : ''}" 
+                         style="padding: 15px; background: ${bgColor}; border: 2px solid ${isOnSameTeam ? borderColor : (isOnOppositeTeam ? 'orange' : 'transparent')}; 
+                                border-radius: 10px; cursor: ${isOnSameTeam ? 'not-allowed' : 'pointer'}; 
+                                opacity: ${isOnSameTeam ? '0.5' : '1'}; transition: all 0.3s; display: flex; justify-content: space-between; align-items: center;"
+                         ${!isOnSameTeam ? `onmouseover="this.style.border='2px solid ${borderColor}'" onmouseout="this.style.border='${isOnSameTeam ? '2px solid ' + borderColor : (isOnOppositeTeam ? '2px solid orange' : '2px solid transparent')}'"` : ''}>
+                        <div>
+                            <div style="font-weight: 700; font-size: 1.1em;">
+                                ${player.name}
+                                ${isOnSameTeam ? ' <span style="color: #4ade80; font-size: 0.8em;">(Already selected)</span>' : ''}
+                                ${isOnOppositeTeam ? ' <span style="color: orange; font-size: 0.8em;">(Will move from other team)</span>' : ''}
+                            </div>
+                            <div style="font-size: 0.9em; color: rgba(255,255,255,0.6); margin-top: 5px;">
+                                ${(player.winRate * 100).toFixed(0)}% Win Rate • ${player.wins}W-${player.losses}L
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.3em; font-weight: 700; color: ${player.elo > 1600 ? '#ffd700' : player.elo > 1500 ? '#c0c0c0' : '#cd7f32'}">
+                                ${player.elo}
+                            </div>
+                            <div style="font-size: 0.8em; color: rgba(255,255,255,0.5);">ELO</div>
+                        </div>
+                    </div>
+                `;
             });
+            
+            list.innerHTML = html;
+            modal.style.display = 'flex';
+        }
+        
+        function selectPlayer(playerName) {
+            const team = currentSelectingTeam;
+            const slot = currentSelectingSlot;
+            
+            // Check if player is already on the same team
+            const sameTeamArray = team === 1 ? selectedTeam1 : selectedTeam2;
+            if (sameTeamArray.includes(playerName)) {
+                // Player already on same team - don't allow duplicate
+                return;
+            }
+            
+            // Check if player is on the opposite team and remove them if so
+            const oppositeTeamArray = team === 1 ? selectedTeam2 : selectedTeam1;
+            const oppositeIndex = oppositeTeamArray.indexOf(playerName);
+            if (oppositeIndex > -1) {
+                oppositeTeamArray.splice(oppositeIndex, 1);
+            }
+            
+            // Now add to the new position
+            if (team === 1) {
+                if (slot === 1) {
+                    if (selectedTeam1[0] && selectedTeam1[0] !== playerName) {
+                        selectedTeam1[1] = selectedTeam1[0]; // Move existing to slot 2 if available
+                    }
+                    selectedTeam1[0] = playerName;
+                } else {
+                    selectedTeam1[1] = playerName;
+                }
+                // Remove empty slots
+                selectedTeam1 = selectedTeam1.filter(p => p);
+            } else {
+                if (slot === 1) {
+                    if (selectedTeam2[0] && selectedTeam2[0] !== playerName) {
+                        selectedTeam2[1] = selectedTeam2[0]; // Move existing to slot 2 if available
+                    }
+                    selectedTeam2[0] = playerName;
+                } else {
+                    selectedTeam2[1] = playerName;
+                }
+                // Remove empty slots
+                selectedTeam2 = selectedTeam2.filter(p => p);
+            }
+            
+            updatePlayerSlots();
+            closePlayerSelector();
+        }
+        
+        function closePlayerSelector() {
+            document.getElementById('playerSelectorModal').style.display = 'none';
+        }
+        
+        function updatePlayerSlots() {
+            // Update Team 1 slots
+            const team1Slot1 = document.getElementById('team1Player1Slot');
+            const team1Slot2 = document.getElementById('team1Player2Slot');
+            
+            if (selectedTeam1[0]) {
+                const player = selectedTeam1[0];
+                const elo = allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500;
+                team1Slot1.innerHTML = `
+                    <div draggable="true" 
+                         ondragstart="handleDragStart(event, '${player}', 1, 1)" 
+                         ondragend="handleDragEnd(event)"
+                         style="cursor: move; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <div style="font-weight: 700; font-size: 0.9em; pointer-events: none;">${player}</div>
+                        <div style="font-size: 0.8em; color: rgba(255,255,255,0.7); pointer-events: none;">${elo}</div>
+                        <div onclick="event.stopPropagation(); removePlayer(1, 1)" style="position: absolute; top: 5px; right: 5px; color: #ff6b6b; cursor: pointer; font-size: 1.2em; pointer-events: auto;">✕</div>
+                    </div>
+                `;
+                team1Slot1.style.background = 'rgba(66, 153, 225, 0.4)';
+            } else {
+                team1Slot1.innerHTML = `<div style="font-size: 2em;">👤</div><div style="font-size: 0.8em; margin-top: 5px;">Select</div>`;
+                team1Slot1.style.background = 'rgba(66, 153, 225, 0.2)';
+            }
+            
+            if (selectedTeam1[1]) {
+                const player = selectedTeam1[1];
+                const elo = allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500;
+                team1Slot2.innerHTML = `
+                    <div draggable="true" 
+                         ondragstart="handleDragStart(event, '${player}', 1, 2)" 
+                         ondragend="handleDragEnd(event)"
+                         style="cursor: move; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <div style="font-weight: 700; font-size: 0.9em; pointer-events: none;">${player}</div>
+                        <div style="font-size: 0.8em; color: rgba(255,255,255,0.7); pointer-events: none;">${elo}</div>
+                        <div onclick="event.stopPropagation(); removePlayer(1, 2)" style="position: absolute; top: 5px; right: 5px; color: #ff6b6b; cursor: pointer; font-size: 1.2em; pointer-events: auto;">✕</div>
+                    </div>
+                `;
+                team1Slot2.style.background = 'rgba(66, 153, 225, 0.4)';
+                team1Slot2.style.opacity = '1';
+            } else {
+                team1Slot2.innerHTML = `<div style="font-size: 2em;">➕</div><div style="font-size: 0.8em; margin-top: 5px;">Optional</div>`;
+                team1Slot2.style.background = 'rgba(66, 153, 225, 0.2)';
+                team1Slot2.style.opacity = '0.7';
+            }
+            
+            // Update Team 2 slots
+            const team2Slot1 = document.getElementById('team2Player1Slot');
+            const team2Slot2 = document.getElementById('team2Player2Slot');
+            
+            if (selectedTeam2[0]) {
+                const player = selectedTeam2[0];
+                const elo = allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500;
+                team2Slot1.innerHTML = `
+                    <div draggable="true" 
+                         ondragstart="handleDragStart(event, '${player}', 2, 1)" 
+                         ondragend="handleDragEnd(event)"
+                         style="cursor: move; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <div style="font-weight: 700; font-size: 0.9em; pointer-events: none;">${player}</div>
+                        <div style="font-size: 0.8em; color: rgba(255,255,255,0.7); pointer-events: none;">${elo}</div>
+                        <div onclick="event.stopPropagation(); removePlayer(2, 1)" style="position: absolute; top: 5px; right: 5px; color: #ff6b6b; cursor: pointer; font-size: 1.2em; pointer-events: auto;">✕</div>
+                    </div>
+                `;
+                team2Slot1.style.background = 'rgba(245, 101, 101, 0.4)';
+            } else {
+                team2Slot1.innerHTML = `<div style="font-size: 2em;">👤</div><div style="font-size: 0.8em; margin-top: 5px;">Select</div>`;
+                team2Slot1.style.background = 'rgba(245, 101, 101, 0.2)';
+            }
+            
+            if (selectedTeam2[1]) {
+                const player = selectedTeam2[1];
+                const elo = allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500;
+                team2Slot2.innerHTML = `
+                    <div draggable="true" 
+                         ondragstart="handleDragStart(event, '${player}', 2, 2)" 
+                         ondragend="handleDragEnd(event)"
+                         style="cursor: move; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <div style="font-weight: 700; font-size: 0.9em; pointer-events: none;">${player}</div>
+                        <div style="font-size: 0.8em; color: rgba(255,255,255,0.7); pointer-events: none;">${elo}</div>
+                        <div onclick="event.stopPropagation(); removePlayer(2, 2)" style="position: absolute; top: 5px; right: 5px; color: #ff6b6b; cursor: pointer; font-size: 1.2em; pointer-events: auto;">✕</div>
+                    </div>
+                `;
+                team2Slot2.style.background = 'rgba(245, 101, 101, 0.4)';
+                team2Slot2.style.opacity = '1';
+            } else {
+                team2Slot2.innerHTML = `<div style="font-size: 2em;">➕</div><div style="font-size: 0.8em; margin-top: 5px;">Optional</div>`;
+                team2Slot2.style.background = 'rgba(245, 101, 101, 0.2)';
+                team2Slot2.style.opacity = '0.7';
+            }
+        }
+        
+        function removePlayer(team, slot) {
+            if (team === 1) {
+                selectedTeam1.splice(slot - 1, 1);
+            } else {
+                selectedTeam2.splice(slot - 1, 1);
+            }
+            updatePlayerSlots();
+        }
+        
+        // Drag and Drop handlers
+        let draggedPlayer = null;
+        let draggedFromTeam = null;
+        let draggedFromSlot = null;
+        
+        function handleDragStart(event, playerName, fromTeam, fromSlot) {
+            draggedPlayer = playerName;
+            draggedFromTeam = fromTeam;
+            draggedFromSlot = fromSlot;
+            event.dataTransfer.effectAllowed = 'move';
+            event.target.style.opacity = '0.5';
+        }
+        
+        function handleDragEnd(event) {
+            event.target.style.opacity = '1';
+            draggedPlayer = null;
+            draggedFromTeam = null;
+            draggedFromSlot = null;
+        }
+        
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            event.currentTarget.style.boxShadow = '0 0 20px rgba(255, 255, 255, 0.5)';
+        }
+        
+        function handleDragLeave(event) {
+            event.currentTarget.style.boxShadow = 'none';
+        }
+        
+        function handleDrop(event, toTeam, toSlot) {
+            event.preventDefault();
+            event.currentTarget.style.boxShadow = 'none';
+            
+            if (!draggedPlayer) return;
+            
+            // Remove player from original position
+            if (draggedFromTeam === 1) {
+                const index = selectedTeam1.indexOf(draggedPlayer);
+                if (index > -1) selectedTeam1.splice(index, 1);
+            } else if (draggedFromTeam === 2) {
+                const index = selectedTeam2.indexOf(draggedPlayer);
+                if (index > -1) selectedTeam2.splice(index, 1);
+            }
+            
+            // Get player currently in the target slot (if any)
+            let displacedPlayer = null;
+            if (toTeam === 1) {
+                displacedPlayer = selectedTeam1[toSlot - 1];
+            } else {
+                displacedPlayer = selectedTeam2[toSlot - 1];
+            }
+            
+            // Add player to new position
+            if (toTeam === 1) {
+                if (toSlot === 1) {
+                    selectedTeam1[0] = draggedPlayer;
+                } else {
+                    selectedTeam1[1] = draggedPlayer;
+                }
+            } else {
+                if (toSlot === 1) {
+                    selectedTeam2[0] = draggedPlayer;
+                } else {
+                    selectedTeam2[1] = draggedPlayer;
+                }
+            }
+            
+            // If we're swapping positions, put the displaced player in the original slot
+            if (displacedPlayer && draggedFromTeam && draggedFromSlot) {
+                if (draggedFromTeam === 1) {
+                    if (draggedFromSlot === 1) {
+                        selectedTeam1[0] = displacedPlayer;
+                    } else {
+                        selectedTeam1[1] = displacedPlayer;
+                    }
+                } else {
+                    if (draggedFromSlot === 1) {
+                        selectedTeam2[0] = displacedPlayer;
+                    } else {
+                        selectedTeam2[1] = displacedPlayer;
+                    }
+                }
+            }
+            
+            // Clean up arrays
+            selectedTeam1 = selectedTeam1.filter(p => p);
+            selectedTeam2 = selectedTeam2.filter(p => p);
+            
+            updatePlayerSlots();
         }
         
         function updatePrediction() {
-            const team1Player1 = document.getElementById('team1Player1').value;
-            const team1Player2 = document.getElementById('team1Player2').value;
-            const team2Player1 = document.getElementById('team2Player1').value;
-            const team2Player2 = document.getElementById('team2Player2').value;
-            
             const resultDiv = document.getElementById('predictionResult');
             
-            if (!team1Player1 || !team2Player1) {
+            if (selectedTeam1.length === 0 || selectedTeam2.length === 0) {
                 resultDiv.innerHTML = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 20px;">Select at least one player for each team</div>';
                 return;
             }
             
-            // Calculate team ELOs
-            const team1Players = [team1Player1, team1Player2].filter(p => p);
-            const team2Players = [team2Player1, team2Player2].filter(p => p);
+            // Use the selected teams
+            const team1Players = selectedTeam1;
+            const team2Players = selectedTeam2;
             
             // Check if all players have ELO ratings
             const allPlayersHaveElo = [...team1Players, ...team2Players].every(p => 
@@ -3982,34 +4943,8 @@
             resultDiv.innerHTML = html;
         }
 
-        // 3. Modified updateMatchPredictorOptions to also update Fair Match Composer
-        function updateMatchPredictorOptions() {
-            const players = Object.keys(allData.playerStats)
-                .filter(player => allData.playerStats[player].gamesPlayed >= 1)
-                .sort();
-            
-            const selects = ['team1Player1', 'team1Player2', 'team2Player1', 'team2Player2'];
-            selects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                const currentValue = select.value;
-                select.innerHTML = selectId.includes('Player2') ? 
-                    '<option value="">Select Player 2 (Optional)</option>' :
-                    '<option value="">Select Player 1</option>';
-                
-                players.forEach(player => {
-                    select.innerHTML += `<option value="${player}">${player}</option>`;
-                });
-                
-                select.value = currentValue;
-            });
-            
-            // Also update fair match composer selects
-            updateFairMatchComposerOptions();
-        }
-
-        // 5. Added call to updateFairMatchComposerOptions in updateDashboardWithData
-        // (Inside the updateDashboardWithData function)
-        updateFairMatchComposerOptions();
+        // Call updateFairMatchComposerOptions when needed
+        // This is handled in the main updateMatchPredictorOptions function
         
         function updateMatchTypeBreakdown(data) {
             const breakdownDiv = document.getElementById('matchTypeBreakdown');
@@ -4074,5 +5009,16 @@
             console.log('If you encounter issues, check the console for debugging information.');
         });
     </script>
+    
+    <!-- Player Selector Modal (moved to body level to avoid container constraints) -->
+    <div id="playerSelectorModal" onclick="if(event.target === this) closePlayerSelector()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000;">
+        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2a2a2a; border-radius: 20px; padding: 20px; width: 90%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+            <h3 id="playerSelectorTitle" style="margin-bottom: 15px; text-align: center; flex-shrink: 0; color: white;">Select Player</h3>
+            <div id="playerSelectorList" style="display: grid; gap: 8px; overflow-y: auto; flex-grow: 1; padding-right: 10px; margin-bottom: 10px;">
+                <!-- Players will be populated here -->
+            </div>
+            <button onclick="closePlayerSelector()" style="width: 100%; padding: 10px; background: rgba(245, 87, 108, 0.2); border: 1px solid #f5576c; color: #f5576c; border-radius: 10px; cursor: pointer; flex-shrink: 0; transition: all 0.3s;" onmouseover="this.style.background='rgba(245, 87, 108, 0.3)'" onmouseout="this.style.background='rgba(245, 87, 108, 0.2)'">Cancel</button>
+        </div>
+    </div>
 </body>
 </html>
