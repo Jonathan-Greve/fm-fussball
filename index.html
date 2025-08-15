@@ -1430,6 +1430,10 @@
                                     <span style="font-size: 0.85em;">2v2</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                    <input type="radio" name="matchType" value="2v1" onchange="updateRatingDisplay()" style="cursor: pointer;">
+                                    <span style="font-size: 0.85em;">2v1</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
                                     <input type="radio" name="matchType" value="1v1" onchange="updateRatingDisplay()" style="cursor: pointer;">
                                     <span style="font-size: 0.85em;">1v1</span>
                                 </label>
@@ -2215,62 +2219,83 @@
             
             // Initialize all players with default OpenSkill ratings
             const playerRatings = {};
-            Object.keys(allData.playerStats).forEach(player => {
-                // Create OpenSkill rating object for each player
-                playerRatings[player] = window.window.OpenSkill.rating();
-                
-                if (!allData.trueSkillRatings[player]) {
-                    allData.trueSkillRatings[player] = {
-                        mu: playerRatings[player].mu,
-                        sigma: playerRatings[player].sigma,
-                        rating: window.OpenSkill.ordinal(playerRatings[player]),
-                        history: [],
-                        gamesPlayed: 0
-                    };
-                    allData.trueSkillRatings[player].history.push(allData.trueSkillRatings[player].rating);
-                } else {
-                    // Restore previous rating if exists
-                    playerRatings[player] = window.OpenSkill.rating({
-                        mu: allData.trueSkillRatings[player].mu,
-                        sigma: allData.trueSkillRatings[player].sigma
-                    });
-                }
-            });
             
-            // Reset and recalculate from match history
-            Object.keys(playerRatings).forEach(player => {
+            // Start fresh calculation from beginning - reset all ratings
+            Object.keys(allData.playerStats).forEach(player => {
+                // Create OpenSkill rating object for each player with defaults
                 playerRatings[player] = window.OpenSkill.rating();
                 allData.trueSkillRatings[player] = {
                     mu: playerRatings[player].mu,
                     sigma: playerRatings[player].sigma,
                     rating: window.OpenSkill.ordinal(playerRatings[player]),
-                    history: [window.OpenSkill.ordinal(playerRatings[player])],
-                    gamesPlayed: 0
+                    history: [], // Start with empty history
+                    historyDates: [], // Start with empty dates
+                    gamesPlayed: 0,
+                    firstMatch: true // Track if this is player's first match
                 };
             });
             
-            // Filter matches based on type
-            let matchesToProcess = allData.matches;
+            // Sort all matches chronologically first
+            let matchesToProcess = [...allData.matches]; // Create a copy
+            
+            matchesToProcess.sort((a, b) => {
+                const parseDate = (dateStr) => {
+                    if (!dateStr || dateStr === 'No date') return new Date(0);
+                    const parts = dateStr.split('/');
+                    if (parts.length === 3) {
+                        return new Date(parts[2], parts[1] - 1, parts[0]);
+                    }
+                    return new Date(dateStr);
+                };
+                return parseDate(a.date) - parseDate(b.date);
+            });
+            
+            // Debug: Analyze match types in data
+            let match1v1Count = 0, match2v2Count = 0, match2v1Count = 0, matchOtherCount = 0;
+            matchesToProcess.forEach(match => {
+                const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
+                const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
+                if (team1Count === 1 && team2Count === 1) match1v1Count++;
+                else if (team1Count === 2 && team2Count === 2) match2v2Count++;
+                else if ((team1Count === 2 && team2Count === 1) || (team1Count === 1 && team2Count === 2)) match2v1Count++;
+                else matchOtherCount++;
+            });
+            console.log(`Match distribution - 1v1: ${match1v1Count}, 2v2: ${match2v2Count}, 2v1: ${match2v1Count}, Other: ${matchOtherCount}`);
+            
+            // Now filter by match type (after sorting)
             if (matchTypeFilter === '1v1') {
-                matchesToProcess = allData.matches.filter(match => {
-                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown').length;
-                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown').length;
+                matchesToProcess = matchesToProcess.filter(match => {
+                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
+                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
                     return team1Count === 1 && team2Count === 1;
                 });
             } else if (matchTypeFilter === '2v2') {
-                matchesToProcess = allData.matches.filter(match => {
-                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown').length;
-                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown').length;
+                matchesToProcess = matchesToProcess.filter(match => {
+                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
+                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
                     return team1Count === 2 && team2Count === 2;
+                });
+            } else if (matchTypeFilter === '2v1') {
+                matchesToProcess = matchesToProcess.filter(match => {
+                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
+                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
+                    return (team1Count === 2 && team2Count === 1) || (team1Count === 1 && team2Count === 2);
                 });
             }
             
-            console.log(`Processing ${matchesToProcess.length} matches for ${matchTypeFilter} games`);
+            console.log(`Processing ${matchesToProcess.length} matches for ${matchTypeFilter} games (out of ${allData.matches.length} total)`);
+            
+            // Track progress
+            let processedCount = 0;
+            let lastDate = null;
             
             // Process matches chronologically
-            matchesToProcess.forEach(match => {
-                const team1Players = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown');
-                const team2Players = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown');
+            matchesToProcess.forEach((match, index) => {
+                processedCount++;
+                lastDate = match.date;
+                
+                const team1Players = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '');
+                const team2Players = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '');
                 
                 // Ensure all players have ratings
                 [...team1Players, ...team2Players].forEach(p => {
@@ -2280,9 +2305,17 @@
                             mu: playerRatings[p].mu,
                             sigma: playerRatings[p].sigma,
                             rating: window.OpenSkill.ordinal(playerRatings[p]),
-                            history: [window.OpenSkill.ordinal(playerRatings[p])],
-                            gamesPlayed: 0
+                            history: [], // Start with empty history
+                            historyDates: [], // Start with empty dates
+                            gamesPlayed: 0,
+                            firstMatch: true // Track if this is player's first match
                         };
+                    }
+                    // Add initial rating point on first match
+                    if (allData.trueSkillRatings[p].firstMatch) {
+                        allData.trueSkillRatings[p].history.push(window.OpenSkill.ordinal(playerRatings[p]));
+                        allData.trueSkillRatings[p].historyDates.push(match.date);
+                        allData.trueSkillRatings[p].firstMatch = false;
                     }
                 });
                 
@@ -2317,6 +2350,7 @@
                     playerData.sigma = newTeam1[idx].sigma;
                     playerData.rating = window.OpenSkill.ordinal(newTeam1[idx]);
                     playerData.history.push(playerData.rating);
+                    playerData.historyDates.push(match.date);
                 });
                 
                 // Update Team 2 players
@@ -2328,6 +2362,7 @@
                     playerData.sigma = newTeam2[idx].sigma;
                     playerData.rating = window.OpenSkill.ordinal(newTeam2[idx]);
                     playerData.history.push(playerData.rating);
+                    playerData.historyDates.push(match.date);
                 });
             });
             
@@ -2339,46 +2374,81 @@
                 data.displayHistory = data.history.map(r => Math.round(1500 + (r * 50)));
             });
             
-            console.log('OpenSkill ratings calculated successfully');
+            console.log(`OpenSkill ratings calculated successfully. Processed ${processedCount} matches, last date: ${lastDate}`);
             console.log('Sample player rating:', Object.keys(allData.trueSkillRatings)[0], allData.trueSkillRatings[Object.keys(allData.trueSkillRatings)[0]]);
         }
         
         // ELO Rating System
         function calculateEloRatings(matchTypeFilter = 'all') {
-            // Initialize all players with 1500 ELO
+            // Initialize all players with 1500 ELO - start fresh for each filter
             Object.keys(allData.playerStats).forEach(player => {
-                if (!allData.eloRatings[player]) {
-                    allData.eloRatings[player] = { rating: 1500, history: [1500] };
-                }
+                allData.eloRatings[player] = { 
+                    rating: 1500, 
+                    history: [], 
+                    historyDates: [],
+                    firstMatch: true 
+                };
             });
             
-            // Filter matches based on type
-            let matchesToProcess = allData.matches;
+            // Sort all matches chronologically first
+            let matchesToProcess = [...allData.matches]; // Create a copy
+            
+            matchesToProcess.sort((a, b) => {
+                const parseDate = (dateStr) => {
+                    if (!dateStr || dateStr === 'No date') return new Date(0);
+                    const parts = dateStr.split('/');
+                    if (parts.length === 3) {
+                        return new Date(parts[2], parts[1] - 1, parts[0]);
+                    }
+                    return new Date(dateStr);
+                };
+                return parseDate(a.date) - parseDate(b.date);
+            });
+            
+            // Now filter by match type (after sorting)
             if (matchTypeFilter === '1v1') {
-                matchesToProcess = allData.matches.filter(match => {
-                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown').length;
-                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown').length;
+                matchesToProcess = matchesToProcess.filter(match => {
+                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
+                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
                     return team1Count === 1 && team2Count === 1;
                 });
             } else if (matchTypeFilter === '2v2') {
-                matchesToProcess = allData.matches.filter(match => {
-                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown').length;
-                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown').length;
+                matchesToProcess = matchesToProcess.filter(match => {
+                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
+                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
                     return team1Count === 2 && team2Count === 2;
                 });
+            } else if (matchTypeFilter === '2v1') {
+                matchesToProcess = matchesToProcess.filter(match => {
+                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
+                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '').length;
+                    return (team1Count === 2 && team2Count === 1) || (team1Count === 1 && team2Count === 2);
+                });
             }
+            console.log(`ELO: Processing ${matchesToProcess.length} matches for ${matchTypeFilter} games`);
             
             // Process matches chronologically
             matchesToProcess.forEach(match => {
                 const players = {
-                    team1: [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown'),
-                    team2: [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown')
+                    team1: [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== ''),
+                    team2: [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '')
                 };
                 
                 // Ensure all players have ELO ratings
                 [...players.team1, ...players.team2].forEach(p => {
                     if (!allData.eloRatings[p]) {
-                        allData.eloRatings[p] = { rating: 1500, history: [1500] };
+                        allData.eloRatings[p] = { 
+                            rating: 1500, 
+                            history: [], 
+                            historyDates: [],
+                            firstMatch: true 
+                        };
+                    }
+                    // Add initial rating point on first match
+                    if (allData.eloRatings[p].firstMatch) {
+                        allData.eloRatings[p].history.push(1500);
+                        allData.eloRatings[p].historyDates.push(match.date);
+                        allData.eloRatings[p].firstMatch = false;
                     }
                 });
                 
@@ -2407,6 +2477,7 @@
                         const newRating = allData.eloRatings[player].rating + K * (score1 - exp1);
                         allData.eloRatings[player].rating = Math.round(newRating);
                         allData.eloRatings[player].history.push(allData.eloRatings[player].rating);
+                        allData.eloRatings[player].historyDates.push(match.date);
                     }
                 });
                 
@@ -2415,6 +2486,7 @@
                         const newRating = allData.eloRatings[player].rating + K * (score2 - exp2);
                         allData.eloRatings[player].rating = Math.round(newRating);
                         allData.eloRatings[player].history.push(allData.eloRatings[player].rating);
+                        allData.eloRatings[player].historyDates.push(match.date);
                     }
                 });
             });
@@ -2522,8 +2594,8 @@
             
             // Process matches
             allData.matches.forEach(match => {
-                const team1Players = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown');
-                const team2Players = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown');
+                const team1Players = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '');
+                const team2Players = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '');
                 
                 team1Players.forEach(p1 => {
                     team2Players.forEach(p2 => {
@@ -2699,8 +2771,8 @@
             
             allData.matches.forEach(match => {
                 // Get all player pairs from opposing teams
-                const team1Players = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown');
-                const team2Players = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown');
+                const team1Players = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '');
+                const team2Players = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '');
                 
                 team1Players.forEach(p1 => {
                     team2Players.forEach(p2 => {
@@ -3695,18 +3767,10 @@
             // Recalculate ratings with the selected filter
             if (allData && allData.matches && allData.matches.length > 0) {
                 if (ratingSystem === 'openskill') {
-                    // Store different ratings for different match types
-                    const ratingKey = `trueSkillRatings_${matchType}`;
-                    allData[ratingKey] = {};
-                    allData.trueSkillRatings = allData[ratingKey];
+                    // Always recalculate to ensure we have fresh data
                     calculateTrueSkillRatings(matchType);
                 } else {
-                    // Store different ELO ratings for different match types
-                    const ratingKey = `eloRatings_${matchType}`;
-                    if (!allData[ratingKey]) {
-                        allData[ratingKey] = {};
-                    }
-                    allData.eloRatings = allData[ratingKey];
+                    // Always recalculate to ensure we have fresh data  
                     calculateEloRatings(matchType);
                 }
             }
@@ -3856,6 +3920,11 @@
             const checkboxContainer = document.getElementById('eloPlayerCheckboxes');
             if (!checkboxContainer) return;
             
+            // Save current selections before rebuilding
+            const currentSelections = new Set();
+            const currentCheckboxes = checkboxContainer.querySelectorAll('input[type="checkbox"]:checked');
+            currentCheckboxes.forEach(cb => currentSelections.add(cb.value));
+            
             let players;
             if ((currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') && allData.trueSkillRatings) {
                 players = Object.entries(allData.trueSkillRatings)
@@ -3871,6 +3940,7 @@
             
             let html = '';
             players.forEach(player => {
+                const isChecked = currentSelections.has(player.name) ? 'checked' : '';
                 html += `
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px; border-radius: 5px; transition: background 0.2s;" 
                            onmouseover="this.style.background='rgba(255,255,255,0.1)'" 
@@ -3878,6 +3948,7 @@
                         <input type="checkbox" 
                                id="elo-player-${player.name}" 
                                value="${player.name}" 
+                               ${isChecked}
                                onchange="updateEloHistoryChart()" 
                                style="cursor: pointer;">
                         <span style="font-size: 0.9em;">${player.name}</span>
@@ -3924,50 +3995,65 @@
             
             if (viewMode === 'date') {
                 // Create date-based chart
-                const matchDates = [];
-                const playerHistories = {};
+                // Use the actual dates from player histories for the selected match type
+                const allDatesSet = new Set();
+                const playerData = {};
                 
-                // Collect all match dates and build player histories by date
-                allData.matches.forEach((match, index) => {
-                    if (match.date && match.date !== 'No date') {
-                        matchDates.push({ date: match.date, index: index });
+                // Collect dates and data for each selected player
+                selectedPlayers.forEach((player, playerIndex) => {
+                    let history, historyDates;
+                    if ((currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') && allData.trueSkillRatings && allData.trueSkillRatings[player]) {
+                        history = allData.trueSkillRatings[player].displayHistory;
+                        historyDates = allData.trueSkillRatings[player].historyDates;
+                    } else if (allData.eloRatings[player]) {
+                        history = allData.eloRatings[player].history;
+                        historyDates = allData.eloRatings[player].historyDates;
+                    }
+                    
+                    if (history && historyDates) {
+                        // Store player's data by date
+                        playerData[player] = {};
+                        history.forEach((rating, idx) => {
+                            const date = historyDates[idx];
+                            if (date && date !== 'No date') {
+                                playerData[player][date] = rating;
+                                allDatesSet.add(date);
+                            }
+                        });
                     }
                 });
                 
-                // Build data for each selected player
+                // Convert dates to sorted array - sort chronologically, not alphabetically
+                const allDates = Array.from(allDatesSet).sort((a, b) => {
+                    // Parse dates in DD/MM/YYYY format
+                    const parseDate = (dateStr) => {
+                        const parts = dateStr.split('/');
+                        if (parts.length === 3) {
+                            return new Date(parts[2], parts[1] - 1, parts[0]); // Year, Month (0-indexed), Day
+                        }
+                        return new Date(dateStr); // Fallback for other formats
+                    };
+                    return parseDate(a) - parseDate(b);
+                });
+                labels = allDates;
+                
+                // Build datasets for each player
                 selectedPlayers.forEach((player, playerIndex) => {
-                    let history;
-                    if ((currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') && allData.trueSkillRatings && allData.trueSkillRatings[player]) {
-                        history = allData.trueSkillRatings[player].displayHistory;
-                    } else if (allData.eloRatings[player]) {
-                        history = allData.eloRatings[player].history;
-                    }
-                    
-                    if (history) {
+                    if (playerData[player]) {
                         const dataPoints = [];
-                        let currentRating = history[0] || 1500;
-                        let historyIndex = 0;
+                        let lastRating = null;
                         
-                        // Track player's participation in matches
-                        matchDates.forEach(({date, index: matchIndex}) => {
-                            // Check if player participated in this match
-                            const match = allData.matches[matchIndex];
-                            const participated = 
-                                match.team1.player1 === player || 
-                                match.team1.player2 === player ||
-                                match.team2.player1 === player || 
-                                match.team2.player2 === player;
-                            
-                            if (participated && historyIndex < history.length) {
-                                currentRating = history[historyIndex];
-                                historyIndex++;
-                            }
-                            
-                            // Add data point (flatline if not participating and showInactive is true)
-                            if (showInactive || participated) {
-                                dataPoints.push(currentRating);
+                        allDates.forEach(date => {
+                            if (playerData[player][date] !== undefined) {
+                                // Player has a rating for this date
+                                lastRating = playerData[player][date];
+                                dataPoints.push(lastRating);
+                            } else if (showInactive && lastRating !== null) {
+                                // Show flat line during inactive periods
+                                dataPoints.push(lastRating);
                             } else {
-                                dataPoints.push(null); // Gap in line
+                                // Gap in the line
+                                dataPoints.push(null);
                             }
                         });
                         
@@ -3984,9 +4070,6 @@
                         });
                     }
                 });
-                
-                // Create date labels
-                labels = matchDates.map(m => m.date);
                 
             } else {
                 // Game-based view (original)
@@ -4205,8 +4288,8 @@
             
             // Find biggest upsets from match history - using historical ELO at time of match
             allData.matches.forEach((match, matchIndex) => {
-                const team1Players = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown');
-                const team2Players = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown');
+                const team1Players = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '');
+                const team2Players = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '');
                 
                 if (team1Players.length > 0 && team2Players.length > 0) {
                     // Use historical ELO if available, otherwise use current
