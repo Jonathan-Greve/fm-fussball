@@ -1755,11 +1755,26 @@
             if (!dateValue) return 'No date';
             
             if (typeof dateValue === 'string') {
+                // Normalize date format: convert DD-MM-YYYY to DD/MM/YYYY
+                if (dateValue.includes('-')) {
+                    const parts = dateValue.split('-');
+                    if (parts.length === 3) {
+                        // Assume DD-MM-YYYY format
+                        const day = parts[0].padStart(2, '0');
+                        const month = parts[1].padStart(2, '0');
+                        const year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+                        return `${day}/${month}/${year}`;
+                    }
+                }
                 return dateValue;
             } else if (typeof dateValue === 'number') {
                 // Excel serial date
                 const excelDate = new Date((dateValue - 25569) * 86400 * 1000);
-                return excelDate.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+                // Ensure consistent DD/MM/YYYY format
+                const day = String(excelDate.getDate()).padStart(2, '0');
+                const month = String(excelDate.getMonth() + 1).padStart(2, '0');
+                const year = excelDate.getFullYear();
+                return `${day}/${month}/${year}`;
             }
             return String(dateValue);
         }
@@ -2243,7 +2258,14 @@
                     if (!dateStr || dateStr === 'No date') return new Date(0);
                     const parts = dateStr.split('/');
                     if (parts.length === 3) {
-                        return new Date(parts[2], parts[1] - 1, parts[0]);
+                        const day = parseInt(parts[0], 10);
+                        const month = parseInt(parts[1], 10) - 1;
+                        let year = parseInt(parts[2], 10);
+                        // Handle 2-digit years
+                        if (year < 100) {
+                            year = year + 2000;
+                        }
+                        return new Date(year, month, day);
                     }
                     return new Date(dateStr);
                 };
@@ -2398,7 +2420,14 @@
                     if (!dateStr || dateStr === 'No date') return new Date(0);
                     const parts = dateStr.split('/');
                     if (parts.length === 3) {
-                        return new Date(parts[2], parts[1] - 1, parts[0]);
+                        const day = parseInt(parts[0], 10);
+                        const month = parseInt(parts[1], 10) - 1;
+                        let year = parseInt(parts[2], 10);
+                        // Handle 2-digit years
+                        if (year < 100) {
+                            year = year + 2000;
+                        }
+                        return new Date(year, month, day);
                     }
                     return new Date(dateStr);
                 };
@@ -4014,8 +4043,24 @@
                         // Store player's data by date
                         playerData[player] = {};
                         history.forEach((rating, idx) => {
-                            const date = historyDates[idx];
+                            let date = historyDates[idx];
                             if (date && date !== 'No date') {
+                                // Normalize date format to ensure consistency
+                                // Handle both DD/MM/YY and DD/MM/YYYY formats, and DD-MM-YYYY formats
+                                let parts = date.split('/');
+                                if (parts.length !== 3) {
+                                    // Try splitting by hyphen if forward slash didn't work
+                                    parts = date.split('-');
+                                }
+                                if (parts.length === 3) {
+                                    const day = parts[0].padStart(2, '0');
+                                    const month = parts[1].padStart(2, '0');
+                                    let year = parts[2];
+                                    if (year.length === 2) {
+                                        year = '20' + year;
+                                    }
+                                    date = `${day}/${month}/${year}`;
+                                }
                                 playerData[player][date] = rating;
                                 allDatesSet.add(date);
                             }
@@ -4024,17 +4069,33 @@
                 });
                 
                 // Convert dates to sorted array - sort chronologically, not alphabetically
+                console.log('Unsorted dates:', Array.from(allDatesSet));
                 const allDates = Array.from(allDatesSet).sort((a, b) => {
                     // Parse dates in DD/MM/YYYY format
                     const parseDate = (dateStr) => {
                         const parts = dateStr.split('/');
                         if (parts.length === 3) {
-                            return new Date(parts[2], parts[1] - 1, parts[0]); // Year, Month (0-indexed), Day
+                            // Convert DD/MM/YYYY to proper Date object
+                            const day = parseInt(parts[0], 10);
+                            const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                            let year = parseInt(parts[2], 10);
+                            
+                            // Handle 2-digit years (assume 2000s)
+                            if (year < 100) {
+                                year = year + 2000;
+                            }
+                            
+                            const dateObj = new Date(year, month, day);
+                            return dateObj;
                         }
                         return new Date(dateStr); // Fallback for other formats
                     };
-                    return parseDate(a) - parseDate(b);
+                    
+                    const dateA = parseDate(a);
+                    const dateB = parseDate(b);
+                    return dateA - dateB;
                 });
+                console.log('Sorted dates:', allDates);
                 labels = allDates;
                 
                 // Build datasets for each player
@@ -4510,7 +4571,9 @@
                     try {
                         const parts = match.date.split('/');
                         if (parts.length === 3) {
-                            const date = new Date(parts[2], parts[1] - 1, parts[0]);
+                            let year = parseInt(parts[2], 10);
+                            if (year < 100) year = year + 2000;
+                            const date = new Date(year, parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
                             const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
                             
                             // Log weekend dates
