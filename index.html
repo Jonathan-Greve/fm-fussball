@@ -1411,30 +1411,30 @@
                             <!-- Rating System Selector -->
                             <div style="display: flex; gap: 8px; align-items: center; padding: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
                                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
-                                    <input type="radio" name="ratingSystem" value="elo" checked onchange="updateRatingDisplay()" style="cursor: pointer;">
+                                    <input type="radio" name="ratingSystem" value="elo" checked onchange="updateSharedRatingSystem('elo')" style="cursor: pointer;">
                                     <span style="font-size: 0.85em;">ELO</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
-                                    <input type="radio" name="ratingSystem" value="openskill" onchange="updateRatingDisplay()" style="cursor: pointer;">
+                                    <input type="radio" name="ratingSystem" value="openskill" onchange="updateSharedRatingSystem('openskill')" style="cursor: pointer;">
                                     <span style="font-size: 0.85em;">OpenSkill</span>
                                 </label>
                             </div>
                             <!-- Match Type Selector -->
                             <div style="display: flex; gap: 8px; align-items: center; padding: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
                                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
-                                    <input type="radio" name="matchType" value="all" checked onchange="updateRatingDisplay()" style="cursor: pointer;">
+                                    <input type="radio" name="matchType" value="all" checked onchange="updateSharedMatchType('all')" style="cursor: pointer;">
                                     <span style="font-size: 0.85em;">All</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
-                                    <input type="radio" name="matchType" value="2v2" onchange="updateRatingDisplay()" style="cursor: pointer;">
+                                    <input type="radio" name="matchType" value="2v2" onchange="updateSharedMatchType('2v2')" style="cursor: pointer;">
                                     <span style="font-size: 0.85em;">2v2</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
-                                    <input type="radio" name="matchType" value="2v1" onchange="updateRatingDisplay()" style="cursor: pointer;">
+                                    <input type="radio" name="matchType" value="2v1" onchange="updateSharedMatchType('2v1')" style="cursor: pointer;">
                                     <span style="font-size: 0.85em;">2v1</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
-                                    <input type="radio" name="matchType" value="1v1" onchange="updateRatingDisplay()" style="cursor: pointer;">
+                                    <input type="radio" name="matchType" value="1v1" onchange="updateSharedMatchType('1v1')" style="cursor: pointer;">
                                     <span style="font-size: 0.85em;">1v1</span>
                                 </label>
                             </div>
@@ -1449,6 +1449,40 @@
                 <!-- Rating History Chart -->
                 <div class="card" style="grid-column: 1 / -1;">
                     <h2 id="ratingHistoryTitle">📈 ELO Rating History</h2>
+                    
+                    <!-- Toggle Controls -->
+                    <div style="margin-bottom: 20px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+                        <!-- Rating System Selector -->
+                        <div style="display: flex; gap: 8px; align-items: center; padding: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                <input type="radio" name="historyRatingSystem" value="elo" onchange="updateSharedRatingSystem('elo')" style="cursor: pointer;">
+                                <span style="font-size: 0.85em;">ELO</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                <input type="radio" name="historyRatingSystem" value="openskill" onchange="updateSharedRatingSystem('openskill')" style="cursor: pointer;">
+                                <span style="font-size: 0.85em;">OpenSkill</span>
+                            </label>
+                        </div>
+                        <!-- Match Type Selector -->
+                        <div style="display: flex; gap: 8px; align-items: center; padding: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                <input type="radio" name="historyMatchType" value="all" onchange="updateSharedMatchType('all')" style="cursor: pointer;">
+                                <span style="font-size: 0.85em;">All</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                <input type="radio" name="historyMatchType" value="2v2" onchange="updateSharedMatchType('2v2')" style="cursor: pointer;">
+                                <span style="font-size: 0.85em;">2v2</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                <input type="radio" name="historyMatchType" value="2v1" onchange="updateSharedMatchType('2v1')" style="cursor: pointer;">
+                                <span style="font-size: 0.85em;">2v1</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                <input type="radio" name="historyMatchType" value="1v1" onchange="updateSharedMatchType('1v1')" style="cursor: pointer;">
+                                <span style="font-size: 0.85em;">1v1</span>
+                            </label>
+                        </div>
+                    </div>
                     
                     <!-- Chart Controls -->
                     <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
@@ -1491,6 +1525,41 @@
                 <!-- Rating Analytics -->
                 <div class="card" style="grid-column: 1 / -1;">
                     <h2 id="ratingAnalyticsTitle">🎯 ELO Analytics & Insights</h2>
+                    
+                    <!-- Toggle Controls -->
+                    <div style="margin-bottom: 20px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+                        <!-- Rating System Selector -->
+                        <div style="display: flex; gap: 8px; align-items: center; padding: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                <input type="radio" name="analyticsRatingSystem" value="elo" onchange="updateSharedRatingSystem('elo')" style="cursor: pointer;">
+                                <span style="font-size: 0.85em;">ELO</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                <input type="radio" name="analyticsRatingSystem" value="openskill" onchange="updateSharedRatingSystem('openskill')" style="cursor: pointer;">
+                                <span style="font-size: 0.85em;">OpenSkill</span>
+                            </label>
+                        </div>
+                        <!-- Match Type Selector -->
+                        <div style="display: flex; gap: 8px; align-items: center; padding: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                <input type="radio" name="analyticsMatchType" value="all" onchange="updateSharedMatchType('all')" style="cursor: pointer;">
+                                <span style="font-size: 0.85em;">All</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                <input type="radio" name="analyticsMatchType" value="2v2" onchange="updateSharedMatchType('2v2')" style="cursor: pointer;">
+                                <span style="font-size: 0.85em;">2v2</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                <input type="radio" name="analyticsMatchType" value="2v1" onchange="updateSharedMatchType('2v1')" style="cursor: pointer;">
+                                <span style="font-size: 0.85em;">2v1</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                <input type="radio" name="analyticsMatchType" value="1v1" onchange="updateSharedMatchType('1v1')" style="cursor: pointer;">
+                                <span style="font-size: 0.85em;">1v1</span>
+                            </label>
+                        </div>
+                    </div>
+                    
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                         <div id="eloMomentum" style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 20px;">
                             <h3 style="margin-bottom: 15px; color: #43e97b;">🚀 Rising Stars</h3>
@@ -1505,17 +1574,6 @@
                             <div id="eloTiersContent"></div>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Achievement Showcase -->
-                <div class="card" style="grid-column: 1 / -1;">
-                    <h2>🏅 Achievement Gallery</h2>
-                    <div style="margin-bottom: 20px;">
-                        <select id="achievementPlayerFilter" class="predictor-select" style="width: 250px;" onchange="updateAchievementShowcase()">
-                            <option value="all">All Players</option>
-                        </select>
-                    </div>
-                    <div id="achievementShowcase"></div>
                 </div>
                 
                 <!-- Time-Based Insights -->
@@ -1550,16 +1608,37 @@
                     <div id="fairMatchComposer">
                         <div style="text-align: center; margin-bottom: 25px;">
                             <p style="color: rgba(255, 255, 255, 0.7); font-size: 1.1em;">Select 4 players to find the fairest team combination</p>
-                            <div style="margin-top: 15px; display: inline-flex; gap: 10px; align-items: center; background: rgba(255, 255, 255, 0.05); padding: 8px 15px; border-radius: 8px;">
-                                <span style="font-size: 0.9em; color: rgba(255, 255, 255, 0.7);">Using:</span>
-                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                                    <input type="radio" name="fairMatchRating" value="elo" checked onchange="updateFairMatch()" style="cursor: pointer;">
-                                    <span style="font-size: 0.9em;">ELO</span>
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                                    <input type="radio" name="fairMatchRating" value="trueskill" onchange="updateFairMatch()" style="cursor: pointer;">
-                                    <span style="font-size: 0.9em;">OpenSkill</span>
-                                </label>
+                            <div style="margin-top: 15px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+                                <!-- Rating System Selector -->
+                                <div style="display: flex; gap: 8px; align-items: center; padding: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                        <input type="radio" name="fairMatchRating" value="elo" onchange="updateSharedRatingSystem('elo')" style="cursor: pointer;">
+                                        <span style="font-size: 0.85em;">ELO</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                        <input type="radio" name="fairMatchRating" value="openskill" onchange="updateSharedRatingSystem('openskill')" style="cursor: pointer;">
+                                        <span style="font-size: 0.85em;">OpenSkill</span>
+                                    </label>
+                                </div>
+                                <!-- Match Type Selector -->
+                                <div style="display: flex; gap: 8px; align-items: center; padding: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                        <input type="radio" name="fairMatchType" value="all" onchange="updateSharedMatchType('all')" style="cursor: pointer;">
+                                        <span style="font-size: 0.85em;">All</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                        <input type="radio" name="fairMatchType" value="2v2" onchange="updateSharedMatchType('2v2')" style="cursor: pointer;">
+                                        <span style="font-size: 0.85em;">2v2</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                        <input type="radio" name="fairMatchType" value="2v1" onchange="updateSharedMatchType('2v1')" style="cursor: pointer;">
+                                        <span style="font-size: 0.85em;">2v1</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                        <input type="radio" name="fairMatchType" value="1v1" onchange="updateSharedMatchType('1v1')" style="cursor: pointer;">
+                                        <span style="font-size: 0.85em;">1v1</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
@@ -1681,16 +1760,37 @@
                         
                         <!-- Prediction Controls -->
                         <div style="text-align: center; margin-bottom: 20px;">
-                            <div style="margin-bottom: 15px; display: inline-flex; gap: 10px; align-items: center; background: rgba(255, 255, 255, 0.05); padding: 8px 15px; border-radius: 8px;">
-                                <span style="font-size: 0.9em; color: rgba(255, 255, 255, 0.7);">Predict using:</span>
-                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                                    <input type="radio" name="predictorRating" value="elo" checked onchange="updatePrediction()" style="cursor: pointer;">
-                                    <span style="font-size: 0.9em;">ELO</span>
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                                    <input type="radio" name="predictorRating" value="trueskill" onchange="updatePrediction()" style="cursor: pointer;">
-                                    <span style="font-size: 0.9em;">OpenSkill</span>
-                                </label>
+                            <div style="margin-bottom: 15px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+                                <!-- Rating System Selector -->
+                                <div style="display: flex; gap: 8px; align-items: center; padding: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                        <input type="radio" name="predictorRating" value="elo" onchange="updateSharedRatingSystem('elo')" style="cursor: pointer;">
+                                        <span style="font-size: 0.85em;">ELO</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                        <input type="radio" name="predictorRating" value="openskill" onchange="updateSharedRatingSystem('openskill')" style="cursor: pointer;">
+                                        <span style="font-size: 0.85em;">OpenSkill</span>
+                                    </label>
+                                </div>
+                                <!-- Match Type Selector -->
+                                <div style="display: flex; gap: 8px; align-items: center; padding: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                        <input type="radio" name="predictorMatchType" value="all" onchange="updateSharedMatchType('all')" style="cursor: pointer;">
+                                        <span style="font-size: 0.85em;">All</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                        <input type="radio" name="predictorMatchType" value="2v2" onchange="updateSharedMatchType('2v2')" style="cursor: pointer;">
+                                        <span style="font-size: 0.85em;">2v2</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                        <input type="radio" name="predictorMatchType" value="2v1" onchange="updateSharedMatchType('2v1')" style="cursor: pointer;">
+                                        <span style="font-size: 0.85em;">2v1</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                        <input type="radio" name="predictorMatchType" value="1v1" onchange="updateSharedMatchType('1v1')" style="cursor: pointer;">
+                                        <span style="font-size: 0.85em;">1v1</span>
+                                    </label>
+                                </div>
                             </div>
                             <div>
                                 <button onclick="updatePrediction()" style="padding: 15px 40px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 30px; font-size: 1.1em; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
@@ -1701,6 +1801,17 @@
                         
                         <div id="predictionResult"></div>
                     </div>
+                </div>
+                
+                <!-- Achievement Showcase -->
+                <div class="card" style="grid-column: 1 / -1;">
+                    <h2>🏅 Achievement Gallery</h2>
+                    <div style="margin-bottom: 20px;">
+                        <select id="achievementPlayerFilter" class="predictor-select" style="width: 250px;" onchange="updateAchievementShowcase()">
+                            <option value="all">All Players</option>
+                        </select>
+                    </div>
+                    <div id="achievementShowcase"></div>
                 </div>
             </div>
         </div>
@@ -3762,8 +3873,8 @@
         // New unified rating display update function
         function updateRatingDisplay() {
             // Get current selections
-            const ratingSystem = document.querySelector('input[name="ratingSystem"]:checked').value;
-            const matchType = document.querySelector('input[name="matchType"]:checked').value;
+            const ratingSystem = document.querySelector('input[name="ratingSystem"]:checked')?.value || currentRatingSystem;
+            const matchType = document.querySelector('input[name="matchType"]:checked')?.value || currentMatchType;
             
             // Store preferences
             currentRatingSystem = ratingSystem;
@@ -3779,18 +3890,17 @@
             
             // Build title based on selections
             let systemName = ratingSystem === 'openskill' ? 'OpenSkill' : 'ELO';
-            let matchTypeText = matchType === 'all' ? '' : ` (${matchType.toUpperCase()})`;
             
-            title.textContent = `${ratingSystem === 'openskill' ? '🎯' : '📊'} ${systemName} Rankings${matchTypeText}`;
+            title.textContent = `${ratingSystem === 'openskill' ? '🎯' : '📊'} ${systemName} Rankings`;
             
             if (ratingSystem === 'openskill') {
-                note.innerHTML = `* OpenSkill${matchTypeText}: Better for team games • Accounts for uncertainty • Min 5 games required`;
-                historyTitle.textContent = `📈 OpenSkill Rating History${matchTypeText}`;
-                analyticsTitle.textContent = `🎯 OpenSkill Analytics & Insights${matchTypeText}`;
+                note.innerHTML = `* OpenSkill: Better for team games • Accounts for uncertainty • Min 5 games required`;
+                historyTitle.textContent = `📈 OpenSkill Rating History`;
+                analyticsTitle.textContent = `🎯 OpenSkill Analytics & Insights`;
             } else {
-                note.innerHTML = `* ELO${matchTypeText}: Minimum 5 games required for ranking`;
-                historyTitle.textContent = `📈 ELO Rating History${matchTypeText}`;
-                analyticsTitle.textContent = `🎯 ELO Analytics & Insights${matchTypeText}`;
+                note.innerHTML = `* ELO: Minimum 5 games required for ranking`;
+                historyTitle.textContent = `📈 ELO Rating History`;
+                analyticsTitle.textContent = `🎯 ELO Analytics & Insights`;
             }
             
             // Recalculate ratings with the selected filter
@@ -3807,6 +3917,62 @@
             // Refresh displays
             updateEloRankings();
             updateEloHistoryChart();
+            updateEloAnalytics();
+        }
+        
+        // Shared state management functions for rating system and match type
+        function updateSharedRatingSystem(system) {
+            currentRatingSystem = system;
+            localStorage.setItem('ratingSystem', system);
+            
+            // Update all radio buttons across all cards
+            document.querySelectorAll('input[name="ratingSystem"][value="' + system + '"]').forEach(radio => {
+                radio.checked = true;
+            });
+            document.querySelectorAll('input[name="fairMatchRating"][value="' + (system === 'openskill' ? 'openskill' : 'elo') + '"]').forEach(radio => {
+                radio.checked = true;
+            });
+            document.querySelectorAll('input[name="predictorRating"][value="' + (system === 'openskill' ? 'openskill' : 'elo') + '"]').forEach(radio => {
+                radio.checked = true;
+            });
+            document.querySelectorAll('input[name="historyRatingSystem"][value="' + (system === 'openskill' ? 'openskill' : 'elo') + '"]').forEach(radio => {
+                radio.checked = true;
+            });
+            document.querySelectorAll('input[name="analyticsRatingSystem"][value="' + (system === 'openskill' ? 'openskill' : 'elo') + '"]').forEach(radio => {
+                radio.checked = true;
+            });
+            
+            // Update displays
+            updateRatingDisplay();
+            updateFairMatch();
+            updatePrediction();
+        }
+        
+        function updateSharedMatchType(type) {
+            currentMatchType = type;
+            localStorage.setItem('matchType', type);
+            
+            // Update all radio buttons across all cards
+            document.querySelectorAll('input[name="matchType"][value="' + type + '"]').forEach(radio => {
+                radio.checked = true;
+            });
+            document.querySelectorAll('input[name="fairMatchType"][value="' + type + '"]').forEach(radio => {
+                radio.checked = true;
+            });
+            document.querySelectorAll('input[name="predictorMatchType"][value="' + type + '"]').forEach(radio => {
+                radio.checked = true;
+            });
+            document.querySelectorAll('input[name="historyMatchType"][value="' + type + '"]').forEach(radio => {
+                radio.checked = true;
+            });
+            document.querySelectorAll('input[name="analyticsMatchType"][value="' + type + '"]').forEach(radio => {
+                radio.checked = true;
+            });
+            
+            // Update displays
+            updateRatingDisplay();
+            updateFairMatch();
+            updatePrediction();
         }
         
         function switchRatingSystem(system) {
@@ -3842,6 +4008,7 @@
             // Refresh displays
             updateEloRankings();
             updateEloHistoryChart();
+            updateEloAnalytics();
         }
         
         function updateEloRankings() {
@@ -4347,63 +4514,73 @@
             const upsetsDiv = document.getElementById('eloUpsetsContent');
             const upsets = [];
             
-            // Find biggest upsets from match history - using historical ELO at time of match
+            const useOpenSkill = (currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') && allData.trueSkillRatings;
+            
+            // Find biggest upsets from match history - using historical ratings at time of match
             allData.matches.forEach((match, matchIndex) => {
                 const team1Players = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '');
                 const team2Players = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown' && p !== null && p !== '');
                 
                 if (team1Players.length > 0 && team2Players.length > 0) {
-                    // Use historical ELO if available, otherwise use current
-                    const getHistoricalElo = (player, index) => {
-                        if (allData.eloRatings[player] && allData.eloRatings[player].history) {
-                            // Use ELO at time of match if history is available
-                            const histIndex = Math.min(index, allData.eloRatings[player].history.length - 1);
-                            return histIndex >= 0 ? allData.eloRatings[player].history[histIndex] : 1500;
+                    // Use historical ratings if available, otherwise use current
+                    const getHistoricalRating = (player, index) => {
+                        if (useOpenSkill) {
+                            if (allData.trueSkillRatings[player] && allData.trueSkillRatings[player].displayHistory) {
+                                const histIndex = Math.min(index, allData.trueSkillRatings[player].displayHistory.length - 1);
+                                return histIndex >= 0 ? allData.trueSkillRatings[player].displayHistory[histIndex] : 1500;
+                            }
+                        } else {
+                            if (allData.eloRatings[player] && allData.eloRatings[player].history) {
+                                const histIndex = Math.min(index, allData.eloRatings[player].history.length - 1);
+                                return histIndex >= 0 ? allData.eloRatings[player].history[histIndex] : 1500;
+                            }
                         }
                         return 1500;
                     };
                     
-                    const team1Elo = team1Players.reduce((sum, p) => {
-                        return sum + getHistoricalElo(p, matchIndex);
+                    const team1Rating = team1Players.reduce((sum, p) => {
+                        return sum + getHistoricalRating(p, matchIndex);
                     }, 0) / team1Players.length;
                     
-                    const team2Elo = team2Players.reduce((sum, p) => {
-                        return sum + getHistoricalElo(p, matchIndex);
+                    const team2Rating = team2Players.reduce((sum, p) => {
+                        return sum + getHistoricalRating(p, matchIndex);
                     }, 0) / team2Players.length;
                     
-                    const eloDiff = Math.abs(team1Elo - team2Elo);
-                    const underdog = team1Elo < team2Elo ? 'team1' : 'team2';
+                    const ratingDiff = Math.abs(team1Rating - team2Rating);
+                    const underdog = team1Rating < team2Rating ? 'team1' : 'team2';
                     const favorite = underdog === 'team1' ? 'team2' : 'team1';
                     
-                    // Lower threshold to 50 ELO difference to catch more upsets
-                    if (eloDiff > 50 && match.winner === underdog) {
+                    // Lower threshold to 50 rating difference to catch more upsets
+                    if (ratingDiff > 50 && match.winner === underdog) {
                         upsets.push({
                             match,
-                            eloDiff: Math.round(eloDiff),
+                            ratingDiff: Math.round(ratingDiff),
                             underdogTeam: underdog === 'team1' ? team1Players : team2Players,
                             favoriteTeam: underdog === 'team1' ? team2Players : team1Players,
-                            underdogElo: Math.round(underdog === 'team1' ? team1Elo : team2Elo),
-                            favoriteElo: Math.round(underdog === 'team1' ? team2Elo : team1Elo)
+                            underdogRating: Math.round(underdog === 'team1' ? team1Rating : team2Rating),
+                            favoriteRating: Math.round(underdog === 'team1' ? team2Rating : team1Rating)
                         });
                     }
                 }
             });
             
-            upsets.sort((a, b) => b.eloDiff - a.eloDiff);
+            upsets.sort((a, b) => b.ratingDiff - a.ratingDiff);
             const topUpsets = upsets.slice(0, 3);
+            
+            const ratingLabel = useOpenSkill ? 'Rating' : 'ELO';
             
             let html = '';
             topUpsets.forEach((upset, index) => {
                 html += `
                     <div style="padding: 10px; background: rgba(245, 87, 108, ${0.1 - index * 0.02}); border-radius: 8px; margin-bottom: 10px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <span style="font-weight: 600;">⚡ ${upset.eloDiff} ELO Upset</span>
+                            <span style="font-weight: 600;">⚡ ${upset.ratingDiff} ${ratingLabel} Upset</span>
                             <span style="font-size: 0.8em; color: rgba(255,255,255,0.6);">${upset.match.date || ''}</span>
                         </div>
                         <div style="font-size: 0.9em;">
-                            <span style="color: #43e97b;">${upset.underdogTeam.join(' & ')} (${upset.underdogElo})</span>
+                            <span style="color: #43e97b;">${upset.underdogTeam.join(' & ')} (${upset.underdogRating})</span>
                             <span style="color: rgba(255,255,255,0.6);"> beat </span>
-                            <span style="color: #f5576c;">${upset.favoriteTeam.join(' & ')} (${upset.favoriteElo})</span>
+                            <span style="color: #f5576c;">${upset.favoriteTeam.join(' & ')} (${upset.favoriteRating})</span>
                         </div>
                         <div style="font-size: 0.8em; margin-top: 5px; color: rgba(255,255,255,0.5);">
                             Score: ${upset.match.team1.score}-${upset.match.team2.score}
@@ -4440,7 +4617,7 @@
             
             Object.entries(ratingsData).forEach(([player, data]) => {
                 if (allData.playerStats[player] && allData.playerStats[player].gamesPlayed >= 5) {
-                    const rating = currentRatingSystem === 'trueskill' ? data.displayRating : data.rating;
+                    const rating = (currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') ? data.displayRating : data.rating;
                     const tier = getEloTier(rating);
                     if (tiers[tier.name]) {
                         tiers[tier.name].players.push(player);
@@ -5252,8 +5429,16 @@
             const team1Players = selectedTeam1;
             const team2Players = selectedTeam2;
             
-            // Get selected rating system
-            const useRatingSystem = document.querySelector('input[name="predictorRating"]:checked')?.value || 'elo';
+            // Use shared rating system and match type
+            const useRatingSystem = currentRatingSystem === 'openskill' ? 'trueskill' : 'elo';
+            const useMatchType = currentMatchType;
+            
+            // Recalculate ratings for the selected match type if needed
+            if (useRatingSystem === 'trueskill') {
+                calculateTrueSkillRatings(useMatchType);
+            } else {
+                calculateEloRatings(useMatchType);
+            }
             
             // Check if all players have ratings
             let allPlayersHaveRatings;
@@ -5408,8 +5593,16 @@
                 return;
             }
             
-            // Get selected rating system
-            const useRatingSystem = document.querySelector('input[name="fairMatchRating"]:checked')?.value || 'elo';
+            // Use shared rating system and match type
+            const useRatingSystem = currentRatingSystem === 'openskill' ? 'trueskill' : 'elo';
+            const useMatchType = currentMatchType;
+            
+            // Recalculate ratings for the selected match type if needed
+            if (useRatingSystem === 'trueskill') {
+                calculateTrueSkillRatings(useMatchType);
+            } else {
+                calculateEloRatings(useMatchType);
+            }
             
             // Check if all players have ratings
             let allHaveRatings;
@@ -5650,6 +5843,45 @@
                     clearInterval(checkOpenSkill);
                     console.log('OpenSkill library loaded successfully!');
                 }
+            }, 100);
+            
+            // Initialize shared state for all toggle buttons
+            setTimeout(() => {
+                // Set initial values for all rating system radio buttons
+                const savedRatingSystem = currentRatingSystem === 'openskill' ? 'openskill' : 'elo';
+                document.querySelectorAll('input[name="ratingSystem"][value="' + savedRatingSystem + '"]').forEach(radio => {
+                    radio.checked = true;
+                });
+                document.querySelectorAll('input[name="fairMatchRating"][value="' + savedRatingSystem + '"]').forEach(radio => {
+                    radio.checked = true;
+                });
+                document.querySelectorAll('input[name="predictorRating"][value="' + savedRatingSystem + '"]').forEach(radio => {
+                    radio.checked = true;
+                });
+                document.querySelectorAll('input[name="historyRatingSystem"][value="' + savedRatingSystem + '"]').forEach(radio => {
+                    radio.checked = true;
+                });
+                document.querySelectorAll('input[name="analyticsRatingSystem"][value="' + savedRatingSystem + '"]').forEach(radio => {
+                    radio.checked = true;
+                });
+                
+                // Set initial values for all match type radio buttons
+                const savedMatchType = currentMatchType;
+                document.querySelectorAll('input[name="matchType"][value="' + savedMatchType + '"]').forEach(radio => {
+                    radio.checked = true;
+                });
+                document.querySelectorAll('input[name="fairMatchType"][value="' + savedMatchType + '"]').forEach(radio => {
+                    radio.checked = true;
+                });
+                document.querySelectorAll('input[name="predictorMatchType"][value="' + savedMatchType + '"]').forEach(radio => {
+                    radio.checked = true;
+                });
+                document.querySelectorAll('input[name="historyMatchType"][value="' + savedMatchType + '"]').forEach(radio => {
+                    radio.checked = true;
+                });
+                document.querySelectorAll('input[name="analyticsMatchType"][value="' + savedMatchType + '"]').forEach(radio => {
+                    radio.checked = true;
+                });
             }, 100);
             
             // Display instructions
