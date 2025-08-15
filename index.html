@@ -6,6 +6,10 @@
     <title>FM Foosball Statistics Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script type="module">
+        import { rating, rate, ordinal } from 'https://cdn.skypack.dev/openskill';
+        window.OpenSkill = { rating, rate, ordinal };
+    </script>
     <style>
         * {
             margin: 0;
@@ -1403,15 +1407,33 @@
                 <div class="card" style="grid-column: span 1; min-width: 650px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <h2 id="ratingsTitle">📊 ELO Rankings</h2>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(255, 255, 255, 0.1); border-radius: 8px;">
-                                <input type="radio" name="ratingSystem" value="elo" checked onchange="switchRatingSystem('elo')" style="cursor: pointer;">
-                                <span style="font-size: 0.9em;">ELO</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(255, 255, 255, 0.1); border-radius: 8px;">
-                                <input type="radio" name="ratingSystem" value="trueskill" onchange="switchRatingSystem('trueskill')" style="cursor: pointer;">
-                                <span style="font-size: 0.9em;">TrueSkill</span>
-                            </label>
+                        <div style="display: flex; gap: 15px; align-items: center;">
+                            <!-- Rating System Selector -->
+                            <div style="display: flex; gap: 8px; align-items: center; padding: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                    <input type="radio" name="ratingSystem" value="elo" checked onchange="updateRatingDisplay()" style="cursor: pointer;">
+                                    <span style="font-size: 0.85em;">ELO</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                    <input type="radio" name="ratingSystem" value="openskill" onchange="updateRatingDisplay()" style="cursor: pointer;">
+                                    <span style="font-size: 0.85em;">OpenSkill</span>
+                                </label>
+                            </div>
+                            <!-- Match Type Selector -->
+                            <div style="display: flex; gap: 8px; align-items: center; padding: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                    <input type="radio" name="matchType" value="all" checked onchange="updateRatingDisplay()" style="cursor: pointer;">
+                                    <span style="font-size: 0.85em;">All</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                    <input type="radio" name="matchType" value="2v2" onchange="updateRatingDisplay()" style="cursor: pointer;">
+                                    <span style="font-size: 0.85em;">2v2</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                                    <input type="radio" name="matchType" value="1v1" onchange="updateRatingDisplay()" style="cursor: pointer;">
+                                    <span style="font-size: 0.85em;">1v1</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <div id="eloRankings" style="overflow-x: auto;"></div>
@@ -1532,7 +1554,7 @@
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
                                     <input type="radio" name="fairMatchRating" value="trueskill" onchange="updateFairMatch()" style="cursor: pointer;">
-                                    <span style="font-size: 0.9em;">TrueSkill</span>
+                                    <span style="font-size: 0.9em;">OpenSkill</span>
                                 </label>
                             </div>
                         </div>
@@ -1663,7 +1685,7 @@
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
                                     <input type="radio" name="predictorRating" value="trueskill" onchange="updatePrediction()" style="cursor: pointer;">
-                                    <span style="font-size: 0.9em;">TrueSkill</span>
+                                    <span style="font-size: 0.9em;">OpenSkill</span>
                                 </label>
                             </div>
                             <div>
@@ -2148,7 +2170,24 @@
             
             // Calculate additional statistics
             calculateEloRatings();
-            calculateTrueSkillRatings();
+            
+            // Only calculate OpenSkill ratings if library is loaded
+            if (window.OpenSkill) {
+                calculateTrueSkillRatings();
+            } else {
+                console.log('OpenSkill not loaded yet during initial processing');
+                // Try again after a delay
+                setTimeout(() => {
+                    if (window.OpenSkill) {
+                        calculateTrueSkillRatings();
+                        if (currentRatingSystem === 'trueskill') {
+                            updateEloRankings();
+                            updateEloHistoryChart();
+                        }
+                    }
+                }, 1000);
+            }
+            
             calculateStreaks();
             calculateHeadToHead();
             calculateAchievements();
@@ -2157,116 +2196,137 @@
         
         // Rating System Selection (default to ELO)
         let currentRatingSystem = localStorage.getItem('ratingSystem') || 'elo';
+        let currentMatchType = localStorage.getItem('matchType') || 'all';
         
-        // TrueSkill-inspired Rating System (Better for team games)
-        function calculateTrueSkillRatings() {
-            // Initialize all players with default TrueSkill values
-            // μ (mu) = 25 (skill level), σ (sigma) = 8.33 (uncertainty)
+        // OpenSkill Rating System (Better for team games)
+        function calculateTrueSkillRatings(matchTypeFilter = 'all') {
+            console.log('calculateTrueSkillRatings called with filter:', matchTypeFilter);
+            // Check if OpenSkill is available
+            if (!window.OpenSkill) {
+                console.warn('OpenSkill library not loaded yet, using fallback ELO ratings');
+                return;
+            }
+            console.log('OpenSkill library available:', window.OpenSkill);
+            
+            // Initialize OpenSkill ratings storage
+            if (!allData.trueSkillRatings) {
+                allData.trueSkillRatings = {};
+            }
+            
+            // Initialize all players with default OpenSkill ratings
+            const playerRatings = {};
             Object.keys(allData.playerStats).forEach(player => {
-                if (!allData.trueSkillRatings) {
-                    allData.trueSkillRatings = {};
-                }
+                // Create OpenSkill rating object for each player
+                playerRatings[player] = window.window.OpenSkill.rating();
+                
                 if (!allData.trueSkillRatings[player]) {
                     allData.trueSkillRatings[player] = {
-                        mu: 25,        // Mean skill
-                        sigma: 8.33,   // Uncertainty/standard deviation
-                        rating: 0,     // Conservative skill estimate (mu - 3*sigma)
+                        mu: playerRatings[player].mu,
+                        sigma: playerRatings[player].sigma,
+                        rating: window.OpenSkill.ordinal(playerRatings[player]),
                         history: [],
                         gamesPlayed: 0
                     };
-                    allData.trueSkillRatings[player].rating = allData.trueSkillRatings[player].mu - 3 * allData.trueSkillRatings[player].sigma;
                     allData.trueSkillRatings[player].history.push(allData.trueSkillRatings[player].rating);
+                } else {
+                    // Restore previous rating if exists
+                    playerRatings[player] = window.OpenSkill.rating({
+                        mu: allData.trueSkillRatings[player].mu,
+                        sigma: allData.trueSkillRatings[player].sigma
+                    });
                 }
             });
             
-            // Process matches chronologically
-            allData.matches.forEach(match => {
-                const players = {
-                    team1: [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown'),
-                    team2: [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown')
+            // Reset and recalculate from match history
+            Object.keys(playerRatings).forEach(player => {
+                playerRatings[player] = window.OpenSkill.rating();
+                allData.trueSkillRatings[player] = {
+                    mu: playerRatings[player].mu,
+                    sigma: playerRatings[player].sigma,
+                    rating: window.OpenSkill.ordinal(playerRatings[player]),
+                    history: [window.OpenSkill.ordinal(playerRatings[player])],
+                    gamesPlayed: 0
                 };
+            });
+            
+            // Filter matches based on type
+            let matchesToProcess = allData.matches;
+            if (matchTypeFilter === '1v1') {
+                matchesToProcess = allData.matches.filter(match => {
+                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown').length;
+                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown').length;
+                    return team1Count === 1 && team2Count === 1;
+                });
+            } else if (matchTypeFilter === '2v2') {
+                matchesToProcess = allData.matches.filter(match => {
+                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown').length;
+                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown').length;
+                    return team1Count === 2 && team2Count === 2;
+                });
+            }
+            
+            console.log(`Processing ${matchesToProcess.length} matches for ${matchTypeFilter} games`);
+            
+            // Process matches chronologically
+            matchesToProcess.forEach(match => {
+                const team1Players = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown');
+                const team2Players = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown');
                 
-                // Ensure all players have TrueSkill ratings
-                [...players.team1, ...players.team2].forEach(p => {
-                    if (!allData.trueSkillRatings[p]) {
+                // Ensure all players have ratings
+                [...team1Players, ...team2Players].forEach(p => {
+                    if (!playerRatings[p]) {
+                        playerRatings[p] = window.OpenSkill.rating();
                         allData.trueSkillRatings[p] = {
-                            mu: 25,
-                            sigma: 8.33,
-                            rating: 0,
-                            history: [],
+                            mu: playerRatings[p].mu,
+                            sigma: playerRatings[p].sigma,
+                            rating: window.OpenSkill.ordinal(playerRatings[p]),
+                            history: [window.OpenSkill.ordinal(playerRatings[p])],
                             gamesPlayed: 0
                         };
-                        allData.trueSkillRatings[p].rating = allData.trueSkillRatings[p].mu - 3 * allData.trueSkillRatings[p].sigma;
-                        allData.trueSkillRatings[p].history.push(allData.trueSkillRatings[p].rating);
                     }
                 });
                 
-                // Calculate team skills
-                const team1Mu = players.team1.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / Math.max(players.team1.length, 1);
-                const team1Sigma = Math.sqrt(players.team1.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / Math.max(players.team1.length, 1);
+                // Create teams for OpenSkill
+                const team1 = team1Players.map(p => playerRatings[p]);
+                const team2 = team2Players.map(p => playerRatings[p]);
                 
-                const team2Mu = players.team2.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / Math.max(players.team2.length, 1);
-                const team2Sigma = Math.sqrt(players.team2.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / Math.max(players.team2.length, 1);
+                // Determine ranking based on winner
+                let teams, ranks;
+                if (match.winner === 'team1') {
+                    teams = [team1, team2];
+                    ranks = [1, 2];
+                } else {
+                    teams = [team2, team1];
+                    ranks = [1, 2];
+                }
                 
-                // Performance parameters
-                const beta = 4.17; // Performance variance
-                const tau = 0.083; // Dynamics factor (how much ratings can change)
-                
-                // Calculate match quality and outcome probability
-                const c = Math.sqrt(2 * Math.pow(beta, 2) + Math.pow(team1Sigma, 2) + Math.pow(team2Sigma, 2));
-                const winProbTeam1 = 1 / (1 + Math.exp(-(team1Mu - team2Mu) / c));
-                
-                // Actual outcome
-                const team1Won = match.winner === 'team1';
-                const surpriseFactor = team1Won ? (1 - winProbTeam1) : winProbTeam1;
-                
-                // Update factors based on match outcome and surprise
-                const v = surpriseFactor * c / Math.PI;
-                const w = v * (team1Won ? 1 : -1);
-                
-                // Adjust learning rate based on team size (smaller teams = more individual impact)
-                const teamSizeAdjustment = 2 / Math.max(players.team1.length, 1);
+                // Calculate new ratings using OpenSkill
+                const [[...newTeam1], [...newTeam2]] = match.winner === 'team1' 
+                    ? window.OpenSkill.rate(teams, { rank: ranks })
+                    : (() => {
+                        const result = window.OpenSkill.rate(teams, { rank: ranks });
+                        return [result[1], result[0]];
+                    })();
                 
                 // Update Team 1 players
-                players.team1.forEach(player => {
+                team1Players.forEach((player, idx) => {
+                    playerRatings[player] = newTeam1[idx];
                     const playerData = allData.trueSkillRatings[player];
                     playerData.gamesPlayed++;
-                    
-                    // Dynamic K-factor based on uncertainty and games played
-                    const kFactor = (playerData.sigma / 8.33) * teamSizeAdjustment;
-                    
-                    // Update mu (skill)
-                    const muChange = kFactor * (playerData.sigma / c) * w;
-                    playerData.mu += muChange;
-                    
-                    // Update sigma (uncertainty) - decreases with more games
-                    const sigmaMultiplier = Math.sqrt(Math.max(1 - (playerData.sigma / c) * (playerData.sigma / c) * v, 0.1));
-                    playerData.sigma = Math.max(playerData.sigma * sigmaMultiplier, 2); // Minimum sigma of 2
-                    
-                    // Add dynamics factor (slight uncertainty increase over time)
-                    playerData.sigma = Math.sqrt(Math.pow(playerData.sigma, 2) + Math.pow(tau, 2));
-                    
-                    // Calculate conservative skill estimate
-                    playerData.rating = playerData.mu - 3 * playerData.sigma;
+                    playerData.mu = newTeam1[idx].mu;
+                    playerData.sigma = newTeam1[idx].sigma;
+                    playerData.rating = window.OpenSkill.ordinal(newTeam1[idx]);
                     playerData.history.push(playerData.rating);
                 });
                 
                 // Update Team 2 players
-                players.team2.forEach(player => {
+                team2Players.forEach((player, idx) => {
+                    playerRatings[player] = newTeam2[idx];
                     const playerData = allData.trueSkillRatings[player];
                     playerData.gamesPlayed++;
-                    
-                    const kFactor = (playerData.sigma / 8.33) * (2 / Math.max(players.team2.length, 1));
-                    
-                    const muChange = kFactor * (playerData.sigma / c) * (-w);
-                    playerData.mu += muChange;
-                    
-                    const sigmaMultiplier = Math.sqrt(Math.max(1 - (playerData.sigma / c) * (playerData.sigma / c) * v, 0.1));
-                    playerData.sigma = Math.max(playerData.sigma * sigmaMultiplier, 2);
-                    
-                    playerData.sigma = Math.sqrt(Math.pow(playerData.sigma, 2) + Math.pow(tau, 2));
-                    
-                    playerData.rating = playerData.mu - 3 * playerData.sigma;
+                    playerData.mu = newTeam2[idx].mu;
+                    playerData.sigma = newTeam2[idx].sigma;
+                    playerData.rating = window.OpenSkill.ordinal(newTeam2[idx]);
                     playerData.history.push(playerData.rating);
                 });
             });
@@ -2274,13 +2334,17 @@
             // Normalize ratings to be more readable (similar scale to ELO)
             Object.keys(allData.trueSkillRatings).forEach(player => {
                 const data = allData.trueSkillRatings[player];
-                data.displayRating = Math.round(1500 + (data.rating * 20));
-                data.displayHistory = data.history.map(r => Math.round(1500 + (r * 20)));
+                // OpenSkill ordinal is typically mu - 3*sigma, scale it to ELO-like range
+                data.displayRating = Math.round(1500 + (data.rating * 50));
+                data.displayHistory = data.history.map(r => Math.round(1500 + (r * 50)));
             });
+            
+            console.log('OpenSkill ratings calculated successfully');
+            console.log('Sample player rating:', Object.keys(allData.trueSkillRatings)[0], allData.trueSkillRatings[Object.keys(allData.trueSkillRatings)[0]]);
         }
         
         // ELO Rating System
-        function calculateEloRatings() {
+        function calculateEloRatings(matchTypeFilter = 'all') {
             // Initialize all players with 1500 ELO
             Object.keys(allData.playerStats).forEach(player => {
                 if (!allData.eloRatings[player]) {
@@ -2288,8 +2352,24 @@
                 }
             });
             
+            // Filter matches based on type
+            let matchesToProcess = allData.matches;
+            if (matchTypeFilter === '1v1') {
+                matchesToProcess = allData.matches.filter(match => {
+                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown').length;
+                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown').length;
+                    return team1Count === 1 && team2Count === 1;
+                });
+            } else if (matchTypeFilter === '2v2') {
+                matchesToProcess = allData.matches.filter(match => {
+                    const team1Count = [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown').length;
+                    const team2Count = [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown').length;
+                    return team1Count === 2 && team2Count === 2;
+                });
+            }
+            
             // Process matches chronologically
-            allData.matches.forEach(match => {
+            matchesToProcess.forEach(match => {
                 const players = {
                     team1: [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown'),
                     team2: [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown')
@@ -3578,6 +3658,64 @@
             });
         }
         
+        // New unified rating display update function
+        function updateRatingDisplay() {
+            // Get current selections
+            const ratingSystem = document.querySelector('input[name="ratingSystem"]:checked').value;
+            const matchType = document.querySelector('input[name="matchType"]:checked').value;
+            
+            // Store preferences
+            currentRatingSystem = ratingSystem;
+            currentMatchType = matchType;
+            localStorage.setItem('ratingSystem', ratingSystem);
+            localStorage.setItem('matchType', matchType);
+            
+            // Update UI titles
+            const title = document.getElementById('ratingsTitle');
+            const note = document.getElementById('ratingSystemNote');
+            const historyTitle = document.getElementById('ratingHistoryTitle');
+            const analyticsTitle = document.getElementById('ratingAnalyticsTitle');
+            
+            // Build title based on selections
+            let systemName = ratingSystem === 'openskill' ? 'OpenSkill' : 'ELO';
+            let matchTypeText = matchType === 'all' ? '' : ` (${matchType.toUpperCase()})`;
+            
+            title.textContent = `${ratingSystem === 'openskill' ? '🎯' : '📊'} ${systemName} Rankings${matchTypeText}`;
+            
+            if (ratingSystem === 'openskill') {
+                note.innerHTML = `* OpenSkill${matchTypeText}: Better for team games • Accounts for uncertainty • Min 5 games required`;
+                historyTitle.textContent = `📈 OpenSkill Rating History${matchTypeText}`;
+                analyticsTitle.textContent = `🎯 OpenSkill Analytics & Insights${matchTypeText}`;
+            } else {
+                note.innerHTML = `* ELO${matchTypeText}: Minimum 5 games required for ranking`;
+                historyTitle.textContent = `📈 ELO Rating History${matchTypeText}`;
+                analyticsTitle.textContent = `🎯 ELO Analytics & Insights${matchTypeText}`;
+            }
+            
+            // Recalculate ratings with the selected filter
+            if (allData && allData.matches && allData.matches.length > 0) {
+                if (ratingSystem === 'openskill') {
+                    // Store different ratings for different match types
+                    const ratingKey = `trueSkillRatings_${matchType}`;
+                    allData[ratingKey] = {};
+                    allData.trueSkillRatings = allData[ratingKey];
+                    calculateTrueSkillRatings(matchType);
+                } else {
+                    // Store different ELO ratings for different match types
+                    const ratingKey = `eloRatings_${matchType}`;
+                    if (!allData[ratingKey]) {
+                        allData[ratingKey] = {};
+                    }
+                    allData.eloRatings = allData[ratingKey];
+                    calculateEloRatings(matchType);
+                }
+            }
+            
+            // Refresh displays
+            updateEloRankings();
+            updateEloHistoryChart();
+        }
+        
         function switchRatingSystem(system) {
             currentRatingSystem = system;
             localStorage.setItem('ratingSystem', system);
@@ -3589,10 +3727,15 @@
             const analyticsTitle = document.getElementById('ratingAnalyticsTitle');
             
             if (system === 'trueskill') {
-                title.textContent = '🎯 TrueSkill Rankings';
-                note.innerHTML = '* TrueSkill: Better for team games • Accounts for uncertainty • Min 5 games required';
-                historyTitle.textContent = '📈 TrueSkill Rating History';
-                analyticsTitle.textContent = '🎯 TrueSkill Analytics & Insights';
+                title.textContent = '🎯 OpenSkill Rankings';
+                note.innerHTML = '* OpenSkill: Better for team games • Accounts for uncertainty • Min 5 games required';
+                historyTitle.textContent = '📈 OpenSkill Rating History';
+                analyticsTitle.textContent = '🎯 OpenSkill Analytics & Insights';
+                
+                // Ensure OpenSkill ratings are calculated
+                if (allData && allData.matches && allData.matches.length > 0) {
+                    calculateTrueSkillRatings();
+                }
             } else {
                 title.textContent = '📊 ELO Rankings';
                 note.innerHTML = '* Minimum 5 games required for ELO ranking';
@@ -3614,8 +3757,9 @@
             
             let rankings, ratingData;
             
-            if (currentRatingSystem === 'trueskill' && allData.trueSkillRatings) {
-                // Use TrueSkill ratings
+            if ((currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') && allData.trueSkillRatings) {
+                // Use OpenSkill ratings
+                console.log('Using OpenSkill ratings, data available:', allData.trueSkillRatings);
                 rankings = Object.entries(allData.trueSkillRatings)
                     .filter(([player, _]) => dataToUse.playerStats[player] && dataToUse.playerStats[player].gamesPlayed >= 5)
                     .sort((a, b) => b[1].displayRating - a[1].displayRating)
@@ -3713,7 +3857,7 @@
             if (!checkboxContainer) return;
             
             let players;
-            if (currentRatingSystem === 'trueskill' && allData.trueSkillRatings) {
+            if ((currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') && allData.trueSkillRatings) {
                 players = Object.entries(allData.trueSkillRatings)
                     .filter(([player, _]) => allData.playerStats[player] && allData.playerStats[player].gamesPlayed >= 3)
                     .sort((a, b) => b[1].displayRating - a[1].displayRating)
@@ -3793,7 +3937,7 @@
                 // Build data for each selected player
                 selectedPlayers.forEach((player, playerIndex) => {
                     let history;
-                    if (currentRatingSystem === 'trueskill' && allData.trueSkillRatings && allData.trueSkillRatings[player]) {
+                    if ((currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') && allData.trueSkillRatings && allData.trueSkillRatings[player]) {
                         history = allData.trueSkillRatings[player].displayHistory;
                     } else if (allData.eloRatings[player]) {
                         history = allData.eloRatings[player].history;
@@ -3849,7 +3993,7 @@
                 let maxGames = 0;
                 selectedPlayers.forEach((player, index) => {
                     let history;
-                    if (currentRatingSystem === 'trueskill' && allData.trueSkillRatings && allData.trueSkillRatings[player]) {
+                    if ((currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') && allData.trueSkillRatings && allData.trueSkillRatings[player]) {
                         history = allData.trueSkillRatings[player].displayHistory;
                     } else if (allData.eloRatings[player]) {
                         history = allData.eloRatings[player].history;
@@ -3919,7 +4063,7 @@
                         y: {
                             title: {
                                 display: true,
-                                text: currentRatingSystem === 'trueskill' ? 'TrueSkill Rating' : 'ELO Rating',
+                                text: currentRatingSystem === 'trueskill' ? 'OpenSkill Rating' : 'ELO Rating',
                                 color: 'rgba(255, 255, 255, 0.7)'
                             },
                             ticks: { color: 'rgba(255, 255, 255, 0.7)' },
@@ -4001,7 +4145,7 @@
             const momentumDiv = document.getElementById('eloMomentumContent');
             
             let ratingsData;
-            if (currentRatingSystem === 'trueskill' && allData.trueSkillRatings) {
+            if ((currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') && allData.trueSkillRatings) {
                 ratingsData = allData.trueSkillRatings;
             } else {
                 ratingsData = allData.eloRatings;
@@ -4010,17 +4154,17 @@
             // Calculate momentum for ALL players (don't slice)
             const momentum = Object.entries(ratingsData)
                 .filter(([player, data]) => {
-                    const history = currentRatingSystem === 'trueskill' ? data.displayHistory : data.history;
+                    const history = (currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') ? data.displayHistory : data.history;
                     return allData.playerStats[player] && 
                            allData.playerStats[player].gamesPlayed >= 5 &&
                            history && history.length >= 5;
                 })
                 .map(([player, data]) => {
-                    const history = currentRatingSystem === 'trueskill' ? data.displayHistory : data.history;
+                    const history = (currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') ? data.displayHistory : data.history;
                     const recent = history.slice(-5);
                     const change = recent[recent.length - 1] - recent[0];
                     const avgChange = change / 5;
-                    const current = currentRatingSystem === 'trueskill' ? data.displayRating : data.rating;
+                    const current = (currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') ? data.displayRating : data.rating;
                     return { player, change, avgChange, current };
                 })
                 .sort((a, b) => b.change - a.change);
@@ -4144,7 +4288,7 @@
             };
             
             let ratingsData;
-            if (currentRatingSystem === 'trueskill' && allData.trueSkillRatings) {
+            if ((currentRatingSystem === 'trueskill' || currentRatingSystem === 'openskill') && allData.trueSkillRatings) {
                 ratingsData = allData.trueSkillRatings;
             } else {
                 ratingsData = allData.eloRatings;
@@ -4985,11 +5129,11 @@
             let team1AvgRating, team2AvgRating, team1WinProb, team2WinProb;
             
             if (useRatingSystem === 'trueskill' && allData.trueSkillRatings) {
-                // Use TrueSkill ratings
+                // Use OpenSkill ratings
                 team1AvgRating = team1Players.reduce((sum, p) => sum + allData.trueSkillRatings[p].displayRating, 0) / team1Players.length;
                 team2AvgRating = team2Players.reduce((sum, p) => sum + allData.trueSkillRatings[p].displayRating, 0) / team2Players.length;
                 
-                // Calculate with TrueSkill parameters
+                // Calculate with OpenSkill parameters
                 const team1AvgMu = team1Players.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / team1Players.length;
                 const team2AvgMu = team2Players.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / team2Players.length;
                 const team1AvgSigma = Math.sqrt(team1Players.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / team1Players.length;
@@ -5030,11 +5174,11 @@
                     <div style="display: flex; justify-content: space-between; margin-top: 10px;">
                         <div style="text-align: left;">
                             <div style="font-weight: 700; font-size: 1.1em;">${team1Names}</div>
-                            <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6);">${useRatingSystem === 'trueskill' ? 'TrueSkill' : 'ELO'}: ${Math.round(team1AvgRating)}</div>
+                            <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6);">${useRatingSystem === 'trueskill' ? 'OpenSkill' : 'ELO'}: ${Math.round(team1AvgRating)}</div>
                         </div>
                         <div style="text-align: right;">
                             <div style="font-weight: 700; font-size: 1.1em;">${team2Names}</div>
-                            <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6);">${useRatingSystem === 'trueskill' ? 'TrueSkill' : 'ELO'}: ${Math.round(team2AvgRating)}</div>
+                            <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6);">${useRatingSystem === 'trueskill' ? 'OpenSkill' : 'ELO'}: ${Math.round(team2AvgRating)}</div>
                         </div>
                     </div>
             `;
@@ -5146,11 +5290,11 @@
                 let team1AvgRating, team2AvgRating, team1WinProb;
                 
                 if (useRatingSystem === 'trueskill' && allData.trueSkillRatings) {
-                    // Use TrueSkill ratings
+                    // Use OpenSkill ratings
                     team1AvgRating = combo.team1.reduce((sum, p) => sum + allData.trueSkillRatings[p].displayRating, 0) / 2;
                     team2AvgRating = combo.team2.reduce((sum, p) => sum + allData.trueSkillRatings[p].displayRating, 0) / 2;
                     
-                    // For TrueSkill, also consider uncertainty
+                    // For OpenSkill, also consider uncertainty
                     const team1AvgMu = combo.team1.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / 2;
                     const team2AvgMu = combo.team2.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / 2;
                     const team1AvgSigma = Math.sqrt(combo.team1.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / 2;
@@ -5354,20 +5498,35 @@
 
         // Auto-load sample data (you can remove this and just use file upload)
         window.addEventListener('load', () => {
+            // Wait for OpenSkill to be available
+            const checkOpenSkill = setInterval(() => {
+                if (window.OpenSkill) {
+                    clearInterval(checkOpenSkill);
+                    console.log('OpenSkill library loaded successfully!');
+                }
+            }, 100);
+            
             // Display instructions
             console.log('FM Foosball Statistics Dashboard loaded!');
             console.log('Please upload your FM FOOSBALL.xlsx file to see the statistics.');
             
             // Initialize rating system preference
             const savedSystem = localStorage.getItem('ratingSystem') || 'elo';
+            const savedMatchType = localStorage.getItem('matchType') || 'all';
             currentRatingSystem = savedSystem;
-            if (savedSystem === 'trueskill') {
-                document.querySelector('input[name="ratingSystem"][value="trueskill"]').checked = true;
-                document.getElementById('ratingsTitle').textContent = '🎯 TrueSkill Rankings';
-                document.getElementById('ratingSystemNote').innerHTML = '* TrueSkill: Better for team games • Accounts for uncertainty • Min 5 games required';
-                document.getElementById('ratingHistoryTitle').textContent = '📈 TrueSkill Rating History';
-                document.getElementById('ratingAnalyticsTitle').textContent = '🎯 TrueSkill Analytics & Insights';
+            currentMatchType = savedMatchType;
+            
+            // Set the correct radio buttons
+            if (savedSystem === 'openskill' || savedSystem === 'trueskill') {
+                document.querySelector('input[name="ratingSystem"][value="openskill"]').checked = true;
+                currentRatingSystem = 'openskill'; // Normalize to openskill
             }
+            if (savedMatchType && savedMatchType !== 'all') {
+                document.querySelector(`input[name="matchType"][value="${savedMatchType}"]`).checked = true;
+            }
+            
+            // Update titles based on saved preferences
+            updateRatingDisplay();
             console.log('The dashboard will process all seasonal tabs (Jan-Feb-Mar, Apr-May-Jun, etc.)');
             console.log('If you encounter issues, check the console for debugging information.');
         });
