@@ -1879,8 +1879,16 @@
             let matchesFound = 0;
             let rowsChecked = 0;
             
-            // Process ALL rows looking for matches
-            for (let i = 0; i < data.length; i++) {
+            // Detect if this sheet has role columns by checking the header row
+            // Old format has 8 columns, new format has 12 columns
+            const hasRoleColumns = data[2] && data[2].length >= 12 && 
+                                   (data[2][3] && data[2][3].toString().includes('ROLE'));
+            
+            console.log(`  Sheet format: ${hasRoleColumns ? 'NEW (with role columns)' : 'OLD (no role columns)'}`);
+            
+            // Process rows starting from row 4 (index 3) where data begins
+            // Row 1-2: Title/formatting, Row 3: Headers, Row 4+: Data
+            for (let i = 3; i < data.length; i++) {
                 const row = data[i];
                 rowsChecked++;
                 
@@ -1889,24 +1897,72 @@
                     matchesFound++;
                     
                     if (matchesFound <= 3) {
-                        console.log(`  Found match ${matchesFound} at row ${i + 1}:`, row.slice(0, 8));
+                        console.log(`  Found match ${matchesFound} at row ${i + 1}:`, row.slice(0, 12));
                     }
                     
-                    const match = {
-                        number: parseInt(row[0]),
-                        date: formatDate(row[1]),
-                        team1: {
-                            player1: (row[2] || 'Unknown').toString().trim(),
-                            player2: (row[3] || 'Unknown').toString().trim(),
-                            score: parseInt(row[4]) || 0
-                        },
-                        team2: {
-                            player1: (row[6] || 'Unknown').toString().trim(),
-                            player2: (row[7] || 'Unknown').toString().trim(),
-                            score: parseInt(row[5]) || 0
-                        },
-                        period: period
-                    };
+                    let match;
+                    
+                    if (hasRoleColumns) {
+                        // NEW FORMAT with role columns:
+                        // 0: Match number
+                        // 1: Date
+                        // 2: Team 1 Player 1
+                        // 3: PLAYER 1 ROLE
+                        // 4: Team 1 Player 2  
+                        // 5: PLAYER 2 ROLE
+                        // 6: Team 1 Score
+                        // 7: Team 2 Score
+                        // 8: Team 2 Player 1
+                        // 9: PLAYER 3 ROLE
+                        // 10: Team 2 Player 2
+                        // 11: PLAYER 4 ROLE
+                        
+                        match = {
+                            number: parseInt(row[0]),
+                            date: formatDate(row[1]),
+                            team1: {
+                                player1: (row[2] || 'Unknown').toString().trim(),
+                                player1Role: (row[3] || '').toString().trim(),
+                                player2: (row[4] || 'Unknown').toString().trim(),
+                                player2Role: (row[5] || '').toString().trim(),
+                                score: parseInt(row[6]) || 0
+                            },
+                            team2: {
+                                player1: (row[8] || 'Unknown').toString().trim(),
+                                player1Role: (row[9] || '').toString().trim(),
+                                player2: (row[10] || 'Unknown').toString().trim(),
+                                player2Role: (row[11] || '').toString().trim(),
+                                score: parseInt(row[7]) || 0
+                            },
+                            period: period
+                        };
+                    } else {
+                        // OLD FORMAT without role columns:
+                        // 0: Match number
+                        // 1: Date
+                        // 2: Team 1 Player 1
+                        // 3: Team 1 Player 2
+                        // 4: Team 1 Score
+                        // 5: Team 2 Score
+                        // 6: Team 2 Player 1
+                        // 7: Team 2 Player 2
+                        
+                        match = {
+                            number: parseInt(row[0]),
+                            date: formatDate(row[1]),
+                            team1: {
+                                player1: (row[2] || 'Unknown').toString().trim(),
+                                player2: (row[3] || 'Unknown').toString().trim(),
+                                score: parseInt(row[4]) || 0
+                            },
+                            team2: {
+                                player1: (row[6] || 'Unknown').toString().trim(),
+                                player2: (row[7] || 'Unknown').toString().trim(),
+                                score: parseInt(row[5]) || 0
+                            },
+                            period: period
+                        };
+                    }
                     match.winner = match.team1.score > match.team2.score ? 'team1' : 'team2';
                     
                     // Only skip if ALL players are Unknown
@@ -1939,32 +1995,7 @@
             console.log(`  Checked ${rowsChecked} rows, found ${matchesFound} matches`);
             console.log(`  Added ${allData.seasonData[period].matches} valid matches to database`);
             
-            // Extract player statistics from the right columns (if they exist)
-            let playersInStatsTable = 0;
-            for (let i = 2; i < Math.min(data.length, 20); i++) {
-                const row = data[i];
-                const playerName = row[12];
-                if (playerName && typeof playerName === 'string' && playerName.trim() !== '') {
-                    playersInStatsTable++;
-                    if (!allData.playerStats[playerName]) {
-                        allData.playerStats[playerName] = {
-                            wins: 0,
-                            losses: 0,
-                            gamesPlayed: 0,
-                            goalsFor: 0,
-                            goalsAgainst: 0,
-                            seasons: []
-                        };
-                    }
-                    if (!allData.playerStats[playerName].seasons.includes(period)) {
-                        allData.playerStats[playerName].seasons.push(period);
-                    }
-                }
-            }
-            
-            if (playersInStatsTable > 0) {
-                console.log(`  Found ${playersInStatsTable} players in stats table (column M)`);
-            }
+            // No separate player stats table - stats are calculated from match data
         }
 
         function updatePlayerStats(match) {
