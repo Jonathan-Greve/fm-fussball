@@ -1399,18 +1399,30 @@
                     <div id="rivalryTracker"></div>
                 </div>
                 
-                <!-- ELO Ratings -->
-                <div class="card">
-                    <h2>📊 ELO Rankings</h2>
+                <!-- Ratings -->
+                <div class="card" style="grid-column: span 1; min-width: 650px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h2 id="ratingsTitle">📊 ELO Rankings</h2>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(255, 255, 255, 0.1); border-radius: 8px;">
+                                <input type="radio" name="ratingSystem" value="elo" checked onchange="switchRatingSystem('elo')" style="cursor: pointer;">
+                                <span style="font-size: 0.9em;">ELO</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: rgba(255, 255, 255, 0.1); border-radius: 8px;">
+                                <input type="radio" name="ratingSystem" value="trueskill" onchange="switchRatingSystem('trueskill')" style="cursor: pointer;">
+                                <span style="font-size: 0.9em;">TrueSkill</span>
+                            </label>
+                        </div>
+                    </div>
                     <div id="eloRankings" style="overflow-x: auto;"></div>
-                    <div style="margin-top: 15px; font-size: 0.85em; color: rgba(255, 255, 255, 0.5); font-style: italic; text-align: center;">
+                    <div id="ratingSystemNote" style="margin-top: 15px; font-size: 0.85em; color: rgba(255, 255, 255, 0.5); font-style: italic; text-align: center;">
                         * Minimum 5 games required for ELO ranking
                     </div>
                 </div>
                 
-                <!-- ELO History Chart -->
+                <!-- Rating History Chart -->
                 <div class="card" style="grid-column: 1 / -1;">
-                    <h2>📈 ELO Rating History</h2>
+                    <h2 id="ratingHistoryTitle">📈 ELO Rating History</h2>
                     
                     <!-- Chart Controls -->
                     <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
@@ -1450,9 +1462,9 @@
                     <div id="eloMilestones" style="margin-top: 20px;"></div>
                 </div>
                 
-                <!-- ELO Analytics -->
+                <!-- Rating Analytics -->
                 <div class="card" style="grid-column: 1 / -1;">
-                    <h2>🎯 ELO Analytics & Insights</h2>
+                    <h2 id="ratingAnalyticsTitle">🎯 ELO Analytics & Insights</h2>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                         <div id="eloMomentum" style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 20px;">
                             <h3 style="margin-bottom: 15px; color: #43e97b;">🚀 Rising Stars</h3>
@@ -1512,6 +1524,17 @@
                     <div id="fairMatchComposer">
                         <div style="text-align: center; margin-bottom: 25px;">
                             <p style="color: rgba(255, 255, 255, 0.7); font-size: 1.1em;">Select 4 players to find the fairest team combination</p>
+                            <div style="margin-top: 15px; display: inline-flex; gap: 10px; align-items: center; background: rgba(255, 255, 255, 0.05); padding: 8px 15px; border-radius: 8px;">
+                                <span style="font-size: 0.9em; color: rgba(255, 255, 255, 0.7);">Using:</span>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="radio" name="fairMatchRating" value="elo" checked onchange="updateFairMatch()" style="cursor: pointer;">
+                                    <span style="font-size: 0.9em;">ELO</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="radio" name="fairMatchRating" value="trueskill" onchange="updateFairMatch()" style="cursor: pointer;">
+                                    <span style="font-size: 0.9em;">TrueSkill</span>
+                                </label>
+                            </div>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
                             <div>
@@ -1630,11 +1653,24 @@
                             </div>
                         </div>
                         
-                        <!-- Prediction Button -->
+                        <!-- Prediction Controls -->
                         <div style="text-align: center; margin-bottom: 20px;">
-                            <button onclick="updatePrediction()" style="padding: 15px 40px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 30px; font-size: 1.1em; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                                ⚡ Calculate Match Prediction
-                            </button>
+                            <div style="margin-bottom: 15px; display: inline-flex; gap: 10px; align-items: center; background: rgba(255, 255, 255, 0.05); padding: 8px 15px; border-radius: 8px;">
+                                <span style="font-size: 0.9em; color: rgba(255, 255, 255, 0.7);">Predict using:</span>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="radio" name="predictorRating" value="elo" checked onchange="updatePrediction()" style="cursor: pointer;">
+                                    <span style="font-size: 0.9em;">ELO</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="radio" name="predictorRating" value="trueskill" onchange="updatePrediction()" style="cursor: pointer;">
+                                    <span style="font-size: 0.9em;">TrueSkill</span>
+                                </label>
+                            </div>
+                            <div>
+                                <button onclick="updatePrediction()" style="padding: 15px 40px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 30px; font-size: 1.1em; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                    ⚡ Calculate Match Prediction
+                                </button>
+                            </div>
                         </div>
                         
                         <div id="predictionResult"></div>
@@ -2112,10 +2148,135 @@
             
             // Calculate additional statistics
             calculateEloRatings();
+            calculateTrueSkillRatings();
             calculateStreaks();
             calculateHeadToHead();
             calculateAchievements();
             calculateRivalries();
+        }
+        
+        // Rating System Selection (default to ELO)
+        let currentRatingSystem = localStorage.getItem('ratingSystem') || 'elo';
+        
+        // TrueSkill-inspired Rating System (Better for team games)
+        function calculateTrueSkillRatings() {
+            // Initialize all players with default TrueSkill values
+            // μ (mu) = 25 (skill level), σ (sigma) = 8.33 (uncertainty)
+            Object.keys(allData.playerStats).forEach(player => {
+                if (!allData.trueSkillRatings) {
+                    allData.trueSkillRatings = {};
+                }
+                if (!allData.trueSkillRatings[player]) {
+                    allData.trueSkillRatings[player] = {
+                        mu: 25,        // Mean skill
+                        sigma: 8.33,   // Uncertainty/standard deviation
+                        rating: 0,     // Conservative skill estimate (mu - 3*sigma)
+                        history: [],
+                        gamesPlayed: 0
+                    };
+                    allData.trueSkillRatings[player].rating = allData.trueSkillRatings[player].mu - 3 * allData.trueSkillRatings[player].sigma;
+                    allData.trueSkillRatings[player].history.push(allData.trueSkillRatings[player].rating);
+                }
+            });
+            
+            // Process matches chronologically
+            allData.matches.forEach(match => {
+                const players = {
+                    team1: [match.team1.player1, match.team1.player2].filter(p => p && p !== 'Unknown'),
+                    team2: [match.team2.player1, match.team2.player2].filter(p => p && p !== 'Unknown')
+                };
+                
+                // Ensure all players have TrueSkill ratings
+                [...players.team1, ...players.team2].forEach(p => {
+                    if (!allData.trueSkillRatings[p]) {
+                        allData.trueSkillRatings[p] = {
+                            mu: 25,
+                            sigma: 8.33,
+                            rating: 0,
+                            history: [],
+                            gamesPlayed: 0
+                        };
+                        allData.trueSkillRatings[p].rating = allData.trueSkillRatings[p].mu - 3 * allData.trueSkillRatings[p].sigma;
+                        allData.trueSkillRatings[p].history.push(allData.trueSkillRatings[p].rating);
+                    }
+                });
+                
+                // Calculate team skills
+                const team1Mu = players.team1.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / Math.max(players.team1.length, 1);
+                const team1Sigma = Math.sqrt(players.team1.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / Math.max(players.team1.length, 1);
+                
+                const team2Mu = players.team2.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / Math.max(players.team2.length, 1);
+                const team2Sigma = Math.sqrt(players.team2.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / Math.max(players.team2.length, 1);
+                
+                // Performance parameters
+                const beta = 4.17; // Performance variance
+                const tau = 0.083; // Dynamics factor (how much ratings can change)
+                
+                // Calculate match quality and outcome probability
+                const c = Math.sqrt(2 * Math.pow(beta, 2) + Math.pow(team1Sigma, 2) + Math.pow(team2Sigma, 2));
+                const winProbTeam1 = 1 / (1 + Math.exp(-(team1Mu - team2Mu) / c));
+                
+                // Actual outcome
+                const team1Won = match.winner === 'team1';
+                const surpriseFactor = team1Won ? (1 - winProbTeam1) : winProbTeam1;
+                
+                // Update factors based on match outcome and surprise
+                const v = surpriseFactor * c / Math.PI;
+                const w = v * (team1Won ? 1 : -1);
+                
+                // Adjust learning rate based on team size (smaller teams = more individual impact)
+                const teamSizeAdjustment = 2 / Math.max(players.team1.length, 1);
+                
+                // Update Team 1 players
+                players.team1.forEach(player => {
+                    const playerData = allData.trueSkillRatings[player];
+                    playerData.gamesPlayed++;
+                    
+                    // Dynamic K-factor based on uncertainty and games played
+                    const kFactor = (playerData.sigma / 8.33) * teamSizeAdjustment;
+                    
+                    // Update mu (skill)
+                    const muChange = kFactor * (playerData.sigma / c) * w;
+                    playerData.mu += muChange;
+                    
+                    // Update sigma (uncertainty) - decreases with more games
+                    const sigmaMultiplier = Math.sqrt(Math.max(1 - (playerData.sigma / c) * (playerData.sigma / c) * v, 0.1));
+                    playerData.sigma = Math.max(playerData.sigma * sigmaMultiplier, 2); // Minimum sigma of 2
+                    
+                    // Add dynamics factor (slight uncertainty increase over time)
+                    playerData.sigma = Math.sqrt(Math.pow(playerData.sigma, 2) + Math.pow(tau, 2));
+                    
+                    // Calculate conservative skill estimate
+                    playerData.rating = playerData.mu - 3 * playerData.sigma;
+                    playerData.history.push(playerData.rating);
+                });
+                
+                // Update Team 2 players
+                players.team2.forEach(player => {
+                    const playerData = allData.trueSkillRatings[player];
+                    playerData.gamesPlayed++;
+                    
+                    const kFactor = (playerData.sigma / 8.33) * (2 / Math.max(players.team2.length, 1));
+                    
+                    const muChange = kFactor * (playerData.sigma / c) * (-w);
+                    playerData.mu += muChange;
+                    
+                    const sigmaMultiplier = Math.sqrt(Math.max(1 - (playerData.sigma / c) * (playerData.sigma / c) * v, 0.1));
+                    playerData.sigma = Math.max(playerData.sigma * sigmaMultiplier, 2);
+                    
+                    playerData.sigma = Math.sqrt(Math.pow(playerData.sigma, 2) + Math.pow(tau, 2));
+                    
+                    playerData.rating = playerData.mu - 3 * playerData.sigma;
+                    playerData.history.push(playerData.rating);
+                });
+            });
+            
+            // Normalize ratings to be more readable (similar scale to ELO)
+            Object.keys(allData.trueSkillRatings).forEach(player => {
+                const data = allData.trueSkillRatings[player];
+                data.displayRating = Math.round(1500 + (data.rating * 20));
+                data.displayHistory = data.history.map(r => Math.round(1500 + (r * 20)));
+            });
         }
         
         // ELO Rating System
@@ -3417,38 +3578,106 @@
             });
         }
         
+        function switchRatingSystem(system) {
+            currentRatingSystem = system;
+            localStorage.setItem('ratingSystem', system);
+            
+            // Update UI titles
+            const title = document.getElementById('ratingsTitle');
+            const note = document.getElementById('ratingSystemNote');
+            const historyTitle = document.getElementById('ratingHistoryTitle');
+            const analyticsTitle = document.getElementById('ratingAnalyticsTitle');
+            
+            if (system === 'trueskill') {
+                title.textContent = '🎯 TrueSkill Rankings';
+                note.innerHTML = '* TrueSkill: Better for team games • Accounts for uncertainty • Min 5 games required';
+                historyTitle.textContent = '📈 TrueSkill Rating History';
+                analyticsTitle.textContent = '🎯 TrueSkill Analytics & Insights';
+            } else {
+                title.textContent = '📊 ELO Rankings';
+                note.innerHTML = '* Minimum 5 games required for ELO ranking';
+                historyTitle.textContent = '📈 ELO Rating History';
+                analyticsTitle.textContent = '🎯 ELO Analytics & Insights';
+            }
+            
+            // Update the radio button selection
+            document.querySelector(`input[name="ratingSystem"][value="${system}"]`).checked = true;
+            
+            // Refresh displays
+            updateEloRankings();
+            updateEloHistoryChart();
+        }
+        
         function updateEloRankings() {
             const eloDiv = document.getElementById('eloRankings');
             const dataToUse = filteredData || allData;
             
-            const eloRankings = Object.entries(allData.eloRatings)
-                .filter(([player, _]) => dataToUse.playerStats[player] && dataToUse.playerStats[player].gamesPlayed >= 5)
-                .sort((a, b) => b[1].rating - a[1].rating)
-                .slice(0, 10);
+            let rankings, ratingData;
             
-            let html = '<div><table class="player-table elo-table" style="width: 100%; table-layout: fixed;"><thead><tr><th style="width: 15%;">Rank</th><th style="width: 25%;">Player</th><th style="width: 15%;">ELO</th><th style="width: 15%;">Peak</th><th style="width: 15%;">Form</th><th style="width: 15%;">Tier</th></tr></thead><tbody>';
-            
-            eloRankings.forEach(([player, elo], index) => {
-                const stats = dataToUse.playerStats[player];
-                const peakElo = Math.max(...elo.history);
-                const recentForm = calculateRecentForm(elo.history);
-                const tier = getEloTier(elo.rating);
-                const rankClass = index < 3 ? `rank-${index + 1}` : '';
+            if (currentRatingSystem === 'trueskill' && allData.trueSkillRatings) {
+                // Use TrueSkill ratings
+                rankings = Object.entries(allData.trueSkillRatings)
+                    .filter(([player, _]) => dataToUse.playerStats[player] && dataToUse.playerStats[player].gamesPlayed >= 5)
+                    .sort((a, b) => b[1].displayRating - a[1].displayRating)
+                    .slice(0, 10);
+                    
+                let html = '<div><table class="player-table elo-table" style="width: 100%; table-layout: fixed;"><thead><tr><th style="width: 8%;">Rank</th><th style="width: 18%;">Player</th><th style="width: 14%;">Rating</th><th style="width: 14%;">Skill</th><th style="width: 16%;">Certainty</th><th style="width: 15%;">Form</th><th style="width: 15%;">Tier</th></tr></thead><tbody>';
                 
-                html += `
-                    <tr>
-                        <td class="${rankClass}">${index + 1}</td>
-                        <td><span class="clickable-player" onclick="showPlayerProfile('${player}')">${player}</span></td>
-                        <td style="font-weight: 700;">${elo.rating}</td>
-                        <td style="color: ${elo.rating === peakElo ? '#43e97b' : 'rgba(255,255,255,0.6)'}">${peakElo}</td>
-                        <td>${recentForm}</td>
-                        <td>${tier.badge}</td>
-                    </tr>
-                `;
-            });
-            
-            html += '</tbody></table></div>';
-            eloDiv.innerHTML = html;
+                rankings.forEach(([player, data], index) => {
+                    const stats = dataToUse.playerStats[player];
+                    const peakRating = Math.max(...data.displayHistory);
+                    const recentForm = calculateRecentForm(data.displayHistory);
+                    const tier = getEloTier(data.displayRating);
+                    const rankClass = index < 3 ? `rank-${index + 1}` : '';
+                    const certainty = Math.round((1 - data.sigma / 8.33) * 100);
+                    
+                    html += `
+                        <tr>
+                            <td class="${rankClass}">${index + 1}</td>
+                            <td><span class="clickable-player" onclick="showPlayerProfile('${player}')">${player}</span></td>
+                            <td style="font-weight: 700;">${data.displayRating}</td>
+                            <td style="color: rgba(255,255,255,0.7);">${Math.round(data.mu * 60)}</td>
+                            <td style="color: ${certainty > 75 ? '#43e97b' : certainty > 50 ? '#feca57' : '#f5576c'};">${certainty}%</td>
+                            <td>${recentForm}</td>
+                            <td>${tier.badge}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+                eloDiv.innerHTML = html;
+                
+            } else {
+                // Use ELO ratings (default)
+                const eloRankings = Object.entries(allData.eloRatings)
+                    .filter(([player, _]) => dataToUse.playerStats[player] && dataToUse.playerStats[player].gamesPlayed >= 5)
+                    .sort((a, b) => b[1].rating - a[1].rating)
+                    .slice(0, 10);
+                
+                let html = '<div><table class="player-table elo-table" style="width: 100%; table-layout: fixed;"><thead><tr><th style="width: 15%;">Rank</th><th style="width: 25%;">Player</th><th style="width: 15%;">ELO</th><th style="width: 15%;">Peak</th><th style="width: 15%;">Form</th><th style="width: 15%;">Tier</th></tr></thead><tbody>';
+                
+                eloRankings.forEach(([player, elo], index) => {
+                    const stats = dataToUse.playerStats[player];
+                    const peakElo = Math.max(...elo.history);
+                    const recentForm = calculateRecentForm(elo.history);
+                    const tier = getEloTier(elo.rating);
+                    const rankClass = index < 3 ? `rank-${index + 1}` : '';
+                    
+                    html += `
+                        <tr>
+                            <td class="${rankClass}">${index + 1}</td>
+                            <td><span class="clickable-player" onclick="showPlayerProfile('${player}')">${player}</span></td>
+                            <td style="font-weight: 700;">${elo.rating}</td>
+                            <td style="color: ${elo.rating === peakElo ? '#43e97b' : 'rgba(255,255,255,0.6)'}">${peakElo}</td>
+                            <td>${recentForm}</td>
+                            <td>${tier.badge}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+                eloDiv.innerHTML = html;
+            }
             
             // Update ELO player select options
             updateEloPlayerSelect();
@@ -3483,10 +3712,18 @@
             const checkboxContainer = document.getElementById('eloPlayerCheckboxes');
             if (!checkboxContainer) return;
             
-            const players = Object.entries(allData.eloRatings)
-                .filter(([player, _]) => allData.playerStats[player] && allData.playerStats[player].gamesPlayed >= 3)
-                .sort((a, b) => b[1].rating - a[1].rating)
-                .map(([player, elo]) => ({ name: player, rating: elo.rating }));
+            let players;
+            if (currentRatingSystem === 'trueskill' && allData.trueSkillRatings) {
+                players = Object.entries(allData.trueSkillRatings)
+                    .filter(([player, _]) => allData.playerStats[player] && allData.playerStats[player].gamesPlayed >= 3)
+                    .sort((a, b) => b[1].displayRating - a[1].displayRating)
+                    .map(([player, data]) => ({ name: player, rating: data.displayRating }));
+            } else {
+                players = Object.entries(allData.eloRatings)
+                    .filter(([player, _]) => allData.playerStats[player] && allData.playerStats[player].gamesPlayed >= 3)
+                    .sort((a, b) => b[1].rating - a[1].rating)
+                    .map(([player, elo]) => ({ name: player, rating: elo.rating }));
+            }
             
             let html = '';
             players.forEach(player => {
@@ -3555,8 +3792,14 @@
                 
                 // Build data for each selected player
                 selectedPlayers.forEach((player, playerIndex) => {
-                    if (allData.eloRatings[player] && allData.eloRatings[player].history) {
-                        const history = allData.eloRatings[player].history;
+                    let history;
+                    if (currentRatingSystem === 'trueskill' && allData.trueSkillRatings && allData.trueSkillRatings[player]) {
+                        history = allData.trueSkillRatings[player].displayHistory;
+                    } else if (allData.eloRatings[player]) {
+                        history = allData.eloRatings[player].history;
+                    }
+                    
+                    if (history) {
                         const dataPoints = [];
                         let currentRating = history[0] || 1500;
                         let historyIndex = 0;
@@ -3605,8 +3848,14 @@
                 // Game-based view (original)
                 let maxGames = 0;
                 selectedPlayers.forEach((player, index) => {
-                    if (allData.eloRatings[player] && allData.eloRatings[player].history) {
-                        const history = allData.eloRatings[player].history;
+                    let history;
+                    if (currentRatingSystem === 'trueskill' && allData.trueSkillRatings && allData.trueSkillRatings[player]) {
+                        history = allData.trueSkillRatings[player].displayHistory;
+                    } else if (allData.eloRatings[player]) {
+                        history = allData.eloRatings[player].history;
+                    }
+                    
+                    if (history) {
                         maxGames = Math.max(maxGames, history.length);
                         datasets.push({
                             label: player,
@@ -3670,7 +3919,7 @@
                         y: {
                             title: {
                                 display: true,
-                                text: 'ELO Rating',
+                                text: currentRatingSystem === 'trueskill' ? 'TrueSkill Rating' : 'ELO Rating',
                                 color: 'rgba(255, 255, 255, 0.7)'
                             },
                             ticks: { color: 'rgba(255, 255, 255, 0.7)' },
@@ -3751,18 +4000,28 @@
         function updateEloMomentum() {
             const momentumDiv = document.getElementById('eloMomentumContent');
             
+            let ratingsData;
+            if (currentRatingSystem === 'trueskill' && allData.trueSkillRatings) {
+                ratingsData = allData.trueSkillRatings;
+            } else {
+                ratingsData = allData.eloRatings;
+            }
+            
             // Calculate momentum for ALL players (don't slice)
-            const momentum = Object.entries(allData.eloRatings)
-                .filter(([player, elo]) => {
+            const momentum = Object.entries(ratingsData)
+                .filter(([player, data]) => {
+                    const history = currentRatingSystem === 'trueskill' ? data.displayHistory : data.history;
                     return allData.playerStats[player] && 
                            allData.playerStats[player].gamesPlayed >= 5 &&
-                           elo.history && elo.history.length >= 5;
+                           history && history.length >= 5;
                 })
-                .map(([player, elo]) => {
-                    const recent = elo.history.slice(-5);
+                .map(([player, data]) => {
+                    const history = currentRatingSystem === 'trueskill' ? data.displayHistory : data.history;
+                    const recent = history.slice(-5);
                     const change = recent[recent.length - 1] - recent[0];
                     const avgChange = change / 5;
-                    return { player, change, avgChange, current: elo.rating };
+                    const current = currentRatingSystem === 'trueskill' ? data.displayRating : data.rating;
+                    return { player, change, avgChange, current };
                 })
                 .sort((a, b) => b.change - a.change);
             
@@ -3884,9 +4143,17 @@
                 'Iron': { players: [], tier: getEloTier(1200) }
             };
             
-            Object.entries(allData.eloRatings).forEach(([player, elo]) => {
+            let ratingsData;
+            if (currentRatingSystem === 'trueskill' && allData.trueSkillRatings) {
+                ratingsData = allData.trueSkillRatings;
+            } else {
+                ratingsData = allData.eloRatings;
+            }
+            
+            Object.entries(ratingsData).forEach(([player, data]) => {
                 if (allData.playerStats[player] && allData.playerStats[player].gamesPlayed >= 5) {
-                    const tier = getEloTier(elo.rating);
+                    const rating = currentRatingSystem === 'trueskill' ? data.displayRating : data.rating;
+                    const tier = getEloTier(rating);
                     if (tiers[tier.name]) {
                         tiers[tier.name].players.push(player);
                     }
@@ -4695,22 +4962,49 @@
             const team1Players = selectedTeam1;
             const team2Players = selectedTeam2;
             
-            // Check if all players have ELO ratings
-            const allPlayersHaveElo = [...team1Players, ...team2Players].every(p => 
-                allData.eloRatings[p] && allData.eloRatings[p].rating
-            );
+            // Get selected rating system
+            const useRatingSystem = document.querySelector('input[name="predictorRating"]:checked')?.value || 'elo';
             
-            if (!allPlayersHaveElo) {
+            // Check if all players have ratings
+            let allPlayersHaveRatings;
+            if (useRatingSystem === 'trueskill' && allData.trueSkillRatings) {
+                allPlayersHaveRatings = [...team1Players, ...team2Players].every(p => 
+                    allData.trueSkillRatings[p] && allData.trueSkillRatings[p].displayRating
+                );
+            } else {
+                allPlayersHaveRatings = [...team1Players, ...team2Players].every(p => 
+                    allData.eloRatings[p] && allData.eloRatings[p].rating
+                );
+            }
+            
+            if (!allPlayersHaveRatings) {
                 resultDiv.innerHTML = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 20px;">Some players don\'t have enough matches for prediction</div>';
                 return;
             }
             
-            const team1AvgElo = team1Players.reduce((sum, p) => sum + allData.eloRatings[p].rating, 0) / team1Players.length;
-            const team2AvgElo = team2Players.reduce((sum, p) => sum + allData.eloRatings[p].rating, 0) / team2Players.length;
+            let team1AvgRating, team2AvgRating, team1WinProb, team2WinProb;
             
-            // Calculate win probability
-            const team1WinProb = 1 / (1 + Math.pow(10, (team2AvgElo - team1AvgElo) / 400));
-            const team2WinProb = 1 - team1WinProb;
+            if (useRatingSystem === 'trueskill' && allData.trueSkillRatings) {
+                // Use TrueSkill ratings
+                team1AvgRating = team1Players.reduce((sum, p) => sum + allData.trueSkillRatings[p].displayRating, 0) / team1Players.length;
+                team2AvgRating = team2Players.reduce((sum, p) => sum + allData.trueSkillRatings[p].displayRating, 0) / team2Players.length;
+                
+                // Calculate with TrueSkill parameters
+                const team1AvgMu = team1Players.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / team1Players.length;
+                const team2AvgMu = team2Players.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / team2Players.length;
+                const team1AvgSigma = Math.sqrt(team1Players.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / team1Players.length;
+                const team2AvgSigma = Math.sqrt(team2Players.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / team2Players.length;
+                
+                const c = Math.sqrt(2 * Math.pow(4.17, 2) + Math.pow(team1AvgSigma, 2) + Math.pow(team2AvgSigma, 2));
+                team1WinProb = 1 / (1 + Math.exp(-(team1AvgMu - team2AvgMu) / c));
+            } else {
+                // Use ELO ratings
+                team1AvgRating = team1Players.reduce((sum, p) => sum + allData.eloRatings[p].rating, 0) / team1Players.length;
+                team2AvgRating = team2Players.reduce((sum, p) => sum + allData.eloRatings[p].rating, 0) / team2Players.length;
+                team1WinProb = 1 / (1 + Math.pow(10, (team2AvgRating - team1AvgRating) / 400));
+            }
+            
+            team2WinProb = 1 - team1WinProb;
             
             // Get historical matchup data if available
             let historicalWins = { team1: 0, team2: 0 };
@@ -4736,11 +5030,11 @@
                     <div style="display: flex; justify-content: space-between; margin-top: 10px;">
                         <div style="text-align: left;">
                             <div style="font-weight: 700; font-size: 1.1em;">${team1Names}</div>
-                            <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6);">ELO: ${Math.round(team1AvgElo)}</div>
+                            <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6);">${useRatingSystem === 'trueskill' ? 'TrueSkill' : 'ELO'}: ${Math.round(team1AvgRating)}</div>
                         </div>
                         <div style="text-align: right;">
                             <div style="font-weight: 700; font-size: 1.1em;">${team2Names}</div>
-                            <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6);">ELO: ${Math.round(team2AvgElo)}</div>
+                            <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6);">${useRatingSystem === 'trueskill' ? 'TrueSkill' : 'ELO'}: ${Math.round(team2AvgRating)}</div>
                         </div>
                     </div>
             `;
@@ -4824,9 +5118,18 @@
                 return;
             }
             
-            // Check if all players have ELO ratings
-            const allHaveElo = selectedPlayers.every(p => allData.eloRatings[p] && allData.eloRatings[p].rating);
-            if (!allHaveElo) {
+            // Get selected rating system
+            const useRatingSystem = document.querySelector('input[name="fairMatchRating"]:checked')?.value || 'elo';
+            
+            // Check if all players have ratings
+            let allHaveRatings;
+            if (useRatingSystem === 'trueskill' && allData.trueSkillRatings) {
+                allHaveRatings = selectedPlayers.every(p => allData.trueSkillRatings[p] && allData.trueSkillRatings[p].displayRating);
+            } else {
+                allHaveRatings = selectedPlayers.every(p => allData.eloRatings[p] && allData.eloRatings[p].rating);
+            }
+            
+            if (!allHaveRatings) {
                 resultDiv.innerHTML = '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 30px;">Some players don\'t have enough matches for analysis</div>';
                 return;
             }
@@ -4840,10 +5143,28 @@
             
             // Calculate fairness for each combination
             const combinationResults = combinations.map(combo => {
-                const team1AvgElo = combo.team1.reduce((sum, p) => sum + allData.eloRatings[p].rating, 0) / 2;
-                const team2AvgElo = combo.team2.reduce((sum, p) => sum + allData.eloRatings[p].rating, 0) / 2;
+                let team1AvgRating, team2AvgRating, team1WinProb;
                 
-                const team1WinProb = 1 / (1 + Math.pow(10, (team2AvgElo - team1AvgElo) / 400));
+                if (useRatingSystem === 'trueskill' && allData.trueSkillRatings) {
+                    // Use TrueSkill ratings
+                    team1AvgRating = combo.team1.reduce((sum, p) => sum + allData.trueSkillRatings[p].displayRating, 0) / 2;
+                    team2AvgRating = combo.team2.reduce((sum, p) => sum + allData.trueSkillRatings[p].displayRating, 0) / 2;
+                    
+                    // For TrueSkill, also consider uncertainty
+                    const team1AvgMu = combo.team1.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / 2;
+                    const team2AvgMu = combo.team2.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / 2;
+                    const team1AvgSigma = Math.sqrt(combo.team1.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / 2;
+                    const team2AvgSigma = Math.sqrt(combo.team2.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / 2;
+                    
+                    const c = Math.sqrt(2 * Math.pow(4.17, 2) + Math.pow(team1AvgSigma, 2) + Math.pow(team2AvgSigma, 2));
+                    team1WinProb = 1 / (1 + Math.exp(-(team1AvgMu - team2AvgMu) / c));
+                } else {
+                    // Use ELO ratings
+                    team1AvgRating = combo.team1.reduce((sum, p) => sum + allData.eloRatings[p].rating, 0) / 2;
+                    team2AvgRating = combo.team2.reduce((sum, p) => sum + allData.eloRatings[p].rating, 0) / 2;
+                    team1WinProb = 1 / (1 + Math.pow(10, (team2AvgRating - team1AvgRating) / 400));
+                }
+                
                 const fairnessScore = 1 - Math.abs(0.5 - team1WinProb) * 2; // 1 = perfectly fair, 0 = completely unfair
                 
                 // Get historical data
@@ -4863,13 +5184,13 @@
                 
                 return {
                     ...combo,
-                    team1AvgElo: Math.round(team1AvgElo),
-                    team2AvgElo: Math.round(team2AvgElo),
+                    team1AvgElo: Math.round(team1AvgRating),
+                    team2AvgElo: Math.round(team2AvgRating),
                     team1WinProb,
                     fairnessScore,
                     team1Synergy,
                     team2Synergy,
-                    eloDiff: Math.abs(team1AvgElo - team2AvgElo)
+                    eloDiff: Math.abs(team1AvgRating - team2AvgRating)
                 };
             });
             
@@ -5036,6 +5357,17 @@
             // Display instructions
             console.log('FM Foosball Statistics Dashboard loaded!');
             console.log('Please upload your FM FOOSBALL.xlsx file to see the statistics.');
+            
+            // Initialize rating system preference
+            const savedSystem = localStorage.getItem('ratingSystem') || 'elo';
+            currentRatingSystem = savedSystem;
+            if (savedSystem === 'trueskill') {
+                document.querySelector('input[name="ratingSystem"][value="trueskill"]').checked = true;
+                document.getElementById('ratingsTitle').textContent = '🎯 TrueSkill Rankings';
+                document.getElementById('ratingSystemNote').innerHTML = '* TrueSkill: Better for team games • Accounts for uncertainty • Min 5 games required';
+                document.getElementById('ratingHistoryTitle').textContent = '📈 TrueSkill Rating History';
+                document.getElementById('ratingAnalyticsTitle').textContent = '🎯 TrueSkill Analytics & Insights';
+            }
             console.log('The dashboard will process all seasonal tabs (Jan-Feb-Mar, Apr-May-Jun, etc.)');
             console.log('If you encounter issues, check the console for debugging information.');
         });
