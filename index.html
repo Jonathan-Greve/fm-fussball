@@ -5057,13 +5057,22 @@
                         const parts = match.date.split('/');
                         if (parts.length === 3) {
                             const month = parseInt(parts[1]) - 1;
-                            const year = parts[2];
-                            const monthKey = `${monthNames[month]} ${year}`;
+                            let year = parts[2].trim();
                             
-                            if (!monthlyStats[monthKey]) {
-                                monthlyStats[monthKey] = 0;
+                            // Ensure year is in 4-digit format
+                            if (year.length === 2) {
+                                year = '20' + year;
                             }
-                            monthlyStats[monthKey]++;
+                            
+                            // Validate month index
+                            if (month >= 0 && month < 12) {
+                                const monthKey = `${monthNames[month]} ${year}`;
+                                
+                                if (!monthlyStats[monthKey]) {
+                                    monthlyStats[monthKey] = 0;
+                                }
+                                monthlyStats[monthKey]++;
+                            }
                         }
                     } catch (e) {
                         // Skip invalid dates
@@ -5074,9 +5083,15 @@
             const sortedMonths = Object.keys(monthlyStats).sort((a, b) => {
                 const [monthA, yearA] = a.split(' ');
                 const [monthB, yearB] = b.split(' ');
-                if (yearA !== yearB) return yearA - yearB;
+                // Compare years as numbers
+                const yearDiff = parseInt(yearA) - parseInt(yearB);
+                if (yearDiff !== 0) return yearDiff;
                 return monthNames.indexOf(monthA) - monthNames.indexOf(monthB);
             }).slice(-6); // Last 6 months
+            
+            // Debug: Log the sorted months to check for duplicates
+            console.log('Monthly stats:', monthlyStats);
+            console.log('Sorted months:', sortedMonths);
             
             let html = '<div class="day-performance"><h3 style="margin-bottom: 20px;">📈 Monthly Activity</h3>';
             html += '<canvas id="monthlyTrendChart" style="max-height: 250px;"></canvas>';
@@ -5084,11 +5099,16 @@
             
             trendDiv.innerHTML = html;
             
+            // Destroy existing chart if it exists
+            if (window.monthlyTrendChartInstance) {
+                window.monthlyTrendChartInstance.destroy();
+            }
+            
             // Create a trend chart with real data
             setTimeout(() => {
                 const ctx = document.getElementById('monthlyTrendChart');
                 if (ctx) {
-                    new Chart(ctx.getContext('2d'), {
+                    window.monthlyTrendChartInstance = new Chart(ctx.getContext('2d'), {
                         type: 'line',
                         data: {
                             labels: sortedMonths.length > 0 ? sortedMonths : ['No Data'],
@@ -5350,18 +5370,35 @@
             
             title.textContent = `Select Player for ${team === 1 ? 'Team Blue' : 'Team Red'} - Position ${slot}`;
             
+            // Check which rating system is selected
+            const useOpenSkill = currentRatingSystem === 'openskill' || currentRatingSystem === 'trueskill';
+            
             // Get available players
             const players = Object.entries(allData.playerStats)
                 .filter(([player, stats]) => stats.gamesPlayed >= 1)
-                .map(([player, stats]) => ({
-                    name: player,
-                    elo: allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500,
-                    wins: stats.wins,
-                    losses: stats.losses,
-                    winRate: stats.winRate,
-                    role: allData.playerRoles[player] || 'Mixed'
-                }))
-                .sort((a, b) => b.elo - a.elo);
+                .map(([player, stats]) => {
+                    let rating, ratingLabel;
+                    if (useOpenSkill) {
+                        rating = allData.trueSkillRatings && allData.trueSkillRatings[player] 
+                            ? allData.trueSkillRatings[player].displayRating
+                            : 1500;
+                        ratingLabel = 'OpenSkill';
+                    } else {
+                        rating = allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500;
+                        ratingLabel = 'ELO';
+                    }
+                    
+                    return {
+                        name: player,
+                        rating: rating,
+                        ratingLabel: ratingLabel,
+                        wins: stats.wins,
+                        losses: stats.losses,
+                        winRate: stats.winRate,
+                        role: allData.playerRoles[player] || 'Mixed'
+                    };
+                })
+                .sort((a, b) => b.rating - a.rating);
             
             let html = '';
             players.forEach(player => {
@@ -5372,6 +5409,9 @@
                 
                 const bgColor = team === 1 ? 'rgba(66, 153, 225, 0.1)' : 'rgba(245, 101, 101, 0.1)';
                 const borderColor = team === 1 ? '#4299e1' : '#fc8181';
+                
+                // Color coding for ratings (both use similar scale now)
+                const ratingColor = player.rating > 1600 ? '#ffd700' : player.rating > 1500 ? '#c0c0c0' : '#cd7f32';
                 
                 html += `
                     <div onclick="${!isOnSameTeam ? `selectPlayer('${player.name}')` : ''}" 
@@ -5390,10 +5430,10 @@
                             </div>
                         </div>
                         <div style="text-align: right;">
-                            <div style="font-size: 1.3em; font-weight: 700; color: ${player.elo > 1600 ? '#ffd700' : player.elo > 1500 ? '#c0c0c0' : '#cd7f32'}">
-                                ${player.elo}
+                            <div style="font-size: 1.3em; font-weight: 700; color: ${ratingColor}">
+                                ${player.rating}
                             </div>
-                            <div style="font-size: 0.8em; color: rgba(255,255,255,0.5);">ELO</div>
+                            <div style="font-size: 0.8em; color: rgba(255,255,255,0.5);">${player.ratingLabel}</div>
                         </div>
                     </div>
                 `;
@@ -5455,20 +5495,30 @@
         }
         
         function updatePlayerSlots() {
+            // Get the current rating system
+            const useOpenSkill = currentRatingSystem === 'openskill' || currentRatingSystem === 'trueskill';
+            
             // Update Team 1 slots
             const team1Slot1 = document.getElementById('team1Player1Slot');
             const team1Slot2 = document.getElementById('team1Player2Slot');
             
             if (selectedTeam1[0]) {
                 const player = selectedTeam1[0];
-                const elo = allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500;
+                let rating, ratingLabel;
+                if (useOpenSkill) {
+                    rating = allData.trueSkillRatings && allData.trueSkillRatings[player] ? allData.trueSkillRatings[player].displayRating : 1500;
+                    ratingLabel = 'OS';
+                } else {
+                    rating = allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500;
+                    ratingLabel = 'ELO';
+                }
                 team1Slot1.innerHTML = `
                     <div draggable="true" 
                          ondragstart="handleDragStart(event, '${player}', 1, 1)" 
                          ondragend="handleDragEnd(event)"
                          style="cursor: move; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <div style="font-weight: 700; font-size: 0.9em; pointer-events: none;">${player}</div>
-                        <div style="font-size: 0.8em; color: rgba(255,255,255,0.7); pointer-events: none;">${elo}</div>
+                        <div style="font-size: 0.8em; color: rgba(255,255,255,0.7); pointer-events: none;">${ratingLabel}: ${rating}</div>
                         <div onclick="event.stopPropagation(); removePlayer(1, 1)" style="position: absolute; top: 5px; right: 5px; color: #ff6b6b; cursor: pointer; font-size: 1.2em; pointer-events: auto;">✕</div>
                     </div>
                 `;
@@ -5480,14 +5530,21 @@
             
             if (selectedTeam1[1]) {
                 const player = selectedTeam1[1];
-                const elo = allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500;
+                let rating, ratingLabel;
+                if (useOpenSkill) {
+                    rating = allData.trueSkillRatings && allData.trueSkillRatings[player] ? allData.trueSkillRatings[player].displayRating : 1500;
+                    ratingLabel = 'OS';
+                } else {
+                    rating = allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500;
+                    ratingLabel = 'ELO';
+                }
                 team1Slot2.innerHTML = `
                     <div draggable="true" 
                          ondragstart="handleDragStart(event, '${player}', 1, 2)" 
                          ondragend="handleDragEnd(event)"
                          style="cursor: move; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <div style="font-weight: 700; font-size: 0.9em; pointer-events: none;">${player}</div>
-                        <div style="font-size: 0.8em; color: rgba(255,255,255,0.7); pointer-events: none;">${elo}</div>
+                        <div style="font-size: 0.8em; color: rgba(255,255,255,0.7); pointer-events: none;">${ratingLabel}: ${rating}</div>
                         <div onclick="event.stopPropagation(); removePlayer(1, 2)" style="position: absolute; top: 5px; right: 5px; color: #ff6b6b; cursor: pointer; font-size: 1.2em; pointer-events: auto;">✕</div>
                     </div>
                 `;
@@ -5505,14 +5562,21 @@
             
             if (selectedTeam2[0]) {
                 const player = selectedTeam2[0];
-                const elo = allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500;
+                let rating, ratingLabel;
+                if (useOpenSkill) {
+                    rating = allData.trueSkillRatings && allData.trueSkillRatings[player] ? allData.trueSkillRatings[player].displayRating : 1500;
+                    ratingLabel = 'OS';
+                } else {
+                    rating = allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500;
+                    ratingLabel = 'ELO';
+                }
                 team2Slot1.innerHTML = `
                     <div draggable="true" 
                          ondragstart="handleDragStart(event, '${player}', 2, 1)" 
                          ondragend="handleDragEnd(event)"
                          style="cursor: move; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <div style="font-weight: 700; font-size: 0.9em; pointer-events: none;">${player}</div>
-                        <div style="font-size: 0.8em; color: rgba(255,255,255,0.7); pointer-events: none;">${elo}</div>
+                        <div style="font-size: 0.8em; color: rgba(255,255,255,0.7); pointer-events: none;">${ratingLabel}: ${rating}</div>
                         <div onclick="event.stopPropagation(); removePlayer(2, 1)" style="position: absolute; top: 5px; right: 5px; color: #ff6b6b; cursor: pointer; font-size: 1.2em; pointer-events: auto;">✕</div>
                     </div>
                 `;
@@ -5524,14 +5588,21 @@
             
             if (selectedTeam2[1]) {
                 const player = selectedTeam2[1];
-                const elo = allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500;
+                let rating, ratingLabel;
+                if (useOpenSkill) {
+                    rating = allData.trueSkillRatings && allData.trueSkillRatings[player] ? allData.trueSkillRatings[player].displayRating : 1500;
+                    ratingLabel = 'OS';
+                } else {
+                    rating = allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500;
+                    ratingLabel = 'ELO';
+                }
                 team2Slot2.innerHTML = `
                     <div draggable="true" 
                          ondragstart="handleDragStart(event, '${player}', 2, 2)" 
                          ondragend="handleDragEnd(event)"
                          style="cursor: move; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <div style="font-weight: 700; font-size: 0.9em; pointer-events: none;">${player}</div>
-                        <div style="font-size: 0.8em; color: rgba(255,255,255,0.7); pointer-events: none;">${elo}</div>
+                        <div style="font-size: 0.8em; color: rgba(255,255,255,0.7); pointer-events: none;">${ratingLabel}: ${rating}</div>
                         <div onclick="event.stopPropagation(); removePlayer(2, 2)" style="position: absolute; top: 5px; right: 5px; color: #ff6b6b; cursor: pointer; font-size: 1.2em; pointer-events: auto;">✕</div>
                     </div>
                 `;
