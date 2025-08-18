@@ -195,6 +195,10 @@
         .file-upload {
             text-align: center;
             margin-bottom: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
         }
         
         .upload-button {
@@ -235,6 +239,74 @@
         .upload-button:hover {
             transform: translateY(-3px);
             box-shadow: 0 8px 40px rgba(120, 119, 198, 0.6);
+        }
+        
+        /* Dropdown for template export */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background: rgba(30, 30, 30, 0.95);
+            backdrop-filter: blur(10px);
+            min-width: 250px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            z-index: 1000;
+            top: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+        
+        .dropdown-content.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        .dropdown-content button {
+            background: transparent;
+            color: white;
+            padding: 15px 20px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            font-size: 1em;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .dropdown-content button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            padding-left: 30px;
+        }
+        
+        .dropdown-content button::before {
+            content: '→';
+            position: absolute;
+            left: 10px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .dropdown-content button:hover::before {
+            opacity: 1;
         }
         
         /* Season filter */
@@ -1275,6 +1347,15 @@
         <div class="subtitle">Elite Performance Analytics Dashboard</div>
         
         <div class="file-upload">
+            <div class="dropdown">
+                <button onclick="toggleDropdown()" class="upload-button" style="background: var(--success-gradient);">
+                    📥 Get Excel Template ▼
+                </button>
+                <div id="templateDropdown" class="dropdown-content">
+                    <button onclick="downloadTemplate('basic')">📄 Basic Template (No Roles)</button>
+                    <button onclick="downloadTemplate('roles')">📋 Template with Roles</button>
+                </div>
+            </div>
             <label for="fileInput" class="upload-button">
                 📊 Upload Excel File
             </label>
@@ -1852,7 +1933,23 @@
             achievements: {},
             eloRatings: {},
             streaks: {},
-            rivalries: {}
+            rivalries: {},
+            playerRoles: {}
+        };
+        
+        // Player roles mapping (Mixed, Attack, Defense)
+        // This can be customized per player
+        const defaultPlayerRoles = {
+            'Jens': 'Mixed',
+            'Marc': 'Attack',
+            'Pascal': 'Defense',
+            'Nico': 'Mixed',
+            'Marius': 'Attack',
+            'Flo': 'Defense',
+            'Krischi': 'Mixed',
+            'Niklas': 'Attack',
+            'Raph': 'Defense',
+            'Lasse': 'Mixed'
         };
         
         let filteredData = null;
@@ -1860,6 +1957,127 @@
 
         // File upload handler
         document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+        
+        // Toggle dropdown menu
+        function toggleDropdown() {
+            const dropdown = document.getElementById('templateDropdown');
+            dropdown.classList.toggle('show');
+            
+            // Close dropdown when clicking outside
+            window.onclick = function(event) {
+                if (!event.target.matches('.upload-button')) {
+                    const dropdowns = document.getElementsByClassName('dropdown-content');
+                    for (let i = 0; i < dropdowns.length; i++) {
+                        const openDropdown = dropdowns[i];
+                        if (openDropdown.classList.contains('show')) {
+                            openDropdown.classList.remove('show');
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Function to download Excel template
+        function downloadTemplate(type) {
+            // Close dropdown
+            document.getElementById('templateDropdown').classList.remove('show');
+            
+            // Create a new workbook
+            const wb = XLSX.utils.book_new();
+            
+            let templateData, colWidths, fileName;
+            
+            if (type === 'basic') {
+                // Basic template without roles
+                templateData = [
+                    ['FM FOOSBALL MATCH TRACKER - BASIC FORMAT'],
+                    [],
+                    ['Match', 'Date', 'Team 1 Player 1', 'Team 1 Player 2', 'Team 1 Score', 'Team 2 Score', 'Team 2 Player 1', 'Team 2 Player 2'],
+                    [1, '01/01/2025', 'John', 'Jane', 10, 8, 'Bob', 'Alice'],
+                    [2, '02/01/2025', 'John', 'Bob', 9, 10, 'Jane', 'Alice'],
+                    [3, '03/01/2025', 'Alice', 'John', 10, 7, 'Bob', 'Jane'],
+                    [4, '04/01/2025', 'Jane', 'Bob', 10, 9, 'John', 'Alice'],
+                    [],
+                    ['Instructions:'],
+                    ['1. Enter match data starting from row 4'],
+                    ['2. Date format: DD/MM/YYYY'],
+                    ['3. Score should be numeric values (typically up to 10)'],
+                    ['4. Player names must be consistent across all matches'],
+                    ['5. Leave Player 2 fields empty for 1v1 matches'],
+                    ['6. Rename the sheet to represent a season (e.g., "Jan-Feb-Mar")'],
+                    ['7. Create multiple sheets for different seasons/periods']
+                ];
+                
+                colWidths = [
+                    {wch: 8},   // Match
+                    {wch: 12},  // Date
+                    {wch: 18},  // Team 1 Player 1
+                    {wch: 18},  // Team 1 Player 2
+                    {wch: 14},  // Team 1 Score
+                    {wch: 14},  // Team 2 Score
+                    {wch: 18},  // Team 2 Player 1
+                    {wch: 18}   // Team 2 Player 2
+                ];
+                
+                fileName = 'FM_Foosball_Template_Basic.xlsx';
+                
+            } else if (type === 'roles') {
+                // Template with player roles
+                templateData = [
+                    ['FM FOOSBALL MATCH TRACKER - WITH PLAYER ROLES'],
+                    [],
+                    ['Match', 'Date', 'Team 1 Player 1', 'PLAYER 1 ROLE', 'Team 1 Player 2', 'PLAYER 2 ROLE', 'Team 1 Score', 'Team 2 Score', 'Team 2 Player 1', 'PLAYER 3 ROLE', 'Team 2 Player 2', 'PLAYER 4 ROLE'],
+                    [1, '01/01/2025', 'John', 'Defender', 'Jane', 'Attacker', 10, 8, 'Bob', 'Defender', 'Alice', 'Attacker'],
+                    [2, '02/01/2025', 'John', 'Attacker', 'Bob', 'Defender', 9, 10, 'Jane', 'Attacker', 'Alice', 'Defender'],
+                    [3, '03/01/2025', 'Alice', 'Defender', 'John', 'Attacker', 10, 7, 'Bob', 'Attacker', 'Jane', 'Defender'],
+                    [4, '04/01/2025', 'Jane', 'Attacker', 'Bob', 'Defender', 10, 9, 'John', 'Defender', 'Alice', 'Attacker'],
+                    [],
+                    ['Instructions:'],
+                    ['1. Enter match data starting from row 4'],
+                    ['2. Date format: DD/MM/YYYY'],
+                    ['3. Score should be numeric values (typically up to 10)'],
+                    ['4. Player names must be consistent across all matches'],
+                    ['5. Role can be: Attacker, Defender, or leave empty'],
+                    ['6. Leave Player 2 and ROLE fields empty for 1v1 matches'],
+                    ['7. Rename the sheet to represent a season (e.g., "Jan-Feb-Mar")'],
+                    ['8. Create multiple sheets for different seasons/periods'],
+                    [],
+                    ['Role Guidelines:'],
+                    ['- Attacker: Player positioned on offense (front rods)'],
+                    ['- Defender: Player positioned on defense (back rods)'],
+                    ['- Mixed/Empty: Player plays both positions or role not tracked']
+                ];
+                
+                colWidths = [
+                    {wch: 8},   // Match
+                    {wch: 12},  // Date
+                    {wch: 16},  // Team 1 Player 1
+                    {wch: 15},  // PLAYER 1 ROLE
+                    {wch: 16},  // Team 1 Player 2
+                    {wch: 15},  // PLAYER 2 ROLE
+                    {wch: 12},  // Team 1 Score
+                    {wch: 12},  // Team 2 Score
+                    {wch: 16},  // Team 2 Player 1
+                    {wch: 15},  // PLAYER 3 ROLE
+                    {wch: 16},  // Team 2 Player 2
+                    {wch: 15}   // PLAYER 4 ROLE
+                ];
+                
+                fileName = 'FM_Foosball_Template_With_Roles.xlsx';
+            }
+            
+            // Create worksheet
+            const ws = XLSX.utils.aoa_to_sheet(templateData);
+            
+            // Set column widths
+            ws['!cols'] = colWidths;
+            
+            // Add worksheet to workbook with a sample season name
+            XLSX.utils.book_append_sheet(wb, ws, 'Jan-Feb-Mar');
+            
+            // Generate Excel file and download
+            XLSX.writeFile(wb, fileName);
+        }
         
         // Helper function to format dates from Excel
         function formatDate(dateValue) {
@@ -1941,7 +2159,8 @@
                 achievements: {},
                 eloRatings: {},
                 streaks: {},
-                rivalries: {}
+                rivalries: {},
+                playerRoles: {}
             };
 
             const seasonPattern = /^[A-Za-z]+-[A-Za-z]+-[A-Za-z]+$/;
@@ -2206,6 +2425,8 @@
                         goalsAgainst: 0,
                         seasons: []
                     };
+                    // Assign player role (use default or customize)
+                    allData.playerRoles[player] = defaultPlayerRoles[player] || 'Mixed';
                 }
                 
                 const stats = allData.playerStats[player];
@@ -4025,7 +4246,7 @@
                     .sort((a, b) => b[1].displayRating - a[1].displayRating)
                     .slice(0, 10);
                     
-                let html = '<div><table class="player-table elo-table" style="width: 100%; table-layout: fixed;"><thead><tr><th style="width: 8%;">Rank</th><th style="width: 18%;">Player</th><th style="width: 14%;">Rating</th><th style="width: 14%;">Skill</th><th style="width: 16%;">Certainty</th><th style="width: 15%;">Form</th><th style="width: 15%;">Tier</th></tr></thead><tbody>';
+                let html = '<div><table class="player-table elo-table" style="width: 100%; table-layout: fixed;"><thead><tr><th style="width: 7%;">Rank</th><th style="width: 16%;">Player</th><th style="width: 12%;">Role</th><th style="width: 12%;">Rating</th><th style="width: 12%;">Skill</th><th style="width: 14%;">Certainty</th><th style="width: 13%;">Form</th><th style="width: 14%;">Tier</th></tr></thead><tbody>';
                 
                 rankings.forEach(([player, data], index) => {
                     const stats = dataToUse.playerStats[player];
@@ -4035,10 +4256,13 @@
                     const rankClass = index < 3 ? `rank-${index + 1}` : '';
                     const certainty = Math.round((1 - data.sigma / 8.33) * 100);
                     
+                    const role = allData.playerRoles[player] || 'Mixed';
+                    const roleIcon = role === 'Attack' ? '⚔️' : role === 'Defense' ? '🛡️' : '⚖️';
                     html += `
                         <tr>
                             <td class="${rankClass}">${index + 1}</td>
                             <td><span class="clickable-player" onclick="showPlayerProfile('${player}')">${player}</span></td>
+                            <td style="opacity: 0.9;">${roleIcon} ${role}</td>
                             <td style="font-weight: 700;">${data.displayRating}</td>
                             <td style="color: rgba(255,255,255,0.7);">${Math.round(data.mu * 60)}</td>
                             <td style="color: ${certainty > 75 ? '#43e97b' : certainty > 50 ? '#feca57' : '#f5576c'};">${certainty}%</td>
@@ -4058,7 +4282,7 @@
                     .sort((a, b) => b[1].rating - a[1].rating)
                     .slice(0, 10);
                 
-                let html = '<div><table class="player-table elo-table" style="width: 100%; table-layout: fixed;"><thead><tr><th style="width: 15%;">Rank</th><th style="width: 25%;">Player</th><th style="width: 15%;">ELO</th><th style="width: 15%;">Peak</th><th style="width: 15%;">Form</th><th style="width: 15%;">Tier</th></tr></thead><tbody>';
+                let html = '<div><table class="player-table elo-table" style="width: 100%; table-layout: fixed;"><thead><tr><th style="width: 12%;">Rank</th><th style="width: 20%;">Player</th><th style="width: 16%;">Role</th><th style="width: 13%;">ELO</th><th style="width: 13%;">Peak</th><th style="width: 13%;">Form</th><th style="width: 13%;">Tier</th></tr></thead><tbody>';
                 
                 eloRankings.forEach(([player, elo], index) => {
                     const stats = dataToUse.playerStats[player];
@@ -4067,10 +4291,13 @@
                     const tier = getEloTier(elo.rating);
                     const rankClass = index < 3 ? `rank-${index + 1}` : '';
                     
+                    const role = allData.playerRoles[player] || 'Mixed';
+                    const roleIcon = role === 'Attack' ? '⚔️' : role === 'Defense' ? '🛡️' : '⚖️';
                     html += `
                         <tr>
                             <td class="${rankClass}">${index + 1}</td>
                             <td><span class="clickable-player" onclick="showPlayerProfile('${player}')">${player}</span></td>
+                            <td style="opacity: 0.9;">${roleIcon} ${role}</td>
                             <td style="font-weight: 700;">${elo.rating}</td>
                             <td style="color: ${elo.rating === peakElo ? '#43e97b' : 'rgba(255,255,255,0.6)'}">${peakElo}</td>
                             <td>${recentForm}</td>
@@ -5131,7 +5358,8 @@
                     elo: allData.eloRatings[player] ? allData.eloRatings[player].rating : 1500,
                     wins: stats.wins,
                     losses: stats.losses,
-                    winRate: stats.winRate
+                    winRate: stats.winRate,
+                    role: allData.playerRoles[player] || 'Mixed'
                 }))
                 .sort((a, b) => b.elo - a.elo);
             
@@ -5153,12 +5381,12 @@
                          ${!isOnSameTeam ? `onmouseover="this.style.border='2px solid ${borderColor}'" onmouseout="this.style.border='${isOnSameTeam ? '2px solid ' + borderColor : (isOnOppositeTeam ? '2px solid orange' : '2px solid transparent')}'"` : ''}>
                         <div>
                             <div style="font-weight: 700; font-size: 1.1em;">
-                                ${player.name}
+                                ${player.name} ${player.role === 'Attack' ? '⚔️' : player.role === 'Defense' ? '🛡️' : '⚖️'}
                                 ${isOnSameTeam ? ' <span style="color: #4ade80; font-size: 0.8em;">(Already selected)</span>' : ''}
                                 ${isOnOppositeTeam ? ' <span style="color: orange; font-size: 0.8em;">(Will move from other team)</span>' : ''}
                             </div>
                             <div style="font-size: 0.9em; color: rgba(255,255,255,0.6); margin-top: 5px;">
-                                ${(player.winRate * 100).toFixed(0)}% Win Rate • ${player.wins}W-${player.losses}L
+                                ${player.role} • ${(player.winRate * 100).toFixed(0)}% Win Rate • ${player.wins}W-${player.losses}L
                             </div>
                         </div>
                         <div style="text-align: right;">
@@ -5560,7 +5788,9 @@
                     select.innerHTML = `<option value="">Select Player ${i}</option>`;
                     
                     players.forEach(player => {
-                        select.innerHTML += `<option value="${player}">${player}</option>`;
+                        const role = allData.playerRoles[player] || 'Mixed';
+                        const roleIcon = role === 'Attack' ? '⚔️' : role === 'Defense' ? '🛡️' : '⚖️';
+                        select.innerHTML += `<option value="${player}">${player} ${roleIcon} (${role})</option>`;
                     });
                     
                     select.value = currentValue;
