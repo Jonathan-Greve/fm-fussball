@@ -3721,8 +3721,11 @@
         function updateRoleLeaderboards(dataToUse) {
             const roleDiv = document.getElementById('roleLeaderboards');
 
+            // Always use allData for role stats (not filtered data)
+            const statsSource = allData.playerStats;
+
             // Check if role data exists
-            const hasRoleData = Object.values(dataToUse.playerStats).some(stats =>
+            const hasRoleData = Object.values(statsSource).some(stats =>
                 stats.roleStats && Object.values(stats.roleStats).some(roleData => roleData && roleData.games > 0)
             );
 
@@ -3737,8 +3740,8 @@
                 const roleIcon = role === 'Attack' ? '⚔️' : role === 'Defense' ? '🛡️' : '⚖️';
                 const roleColor = role === 'Attack' ? '#f5576c' : role === 'Defense' ? '#43e97b' : '#ffd700';
 
-                // Get top 5 players for this role
-                const rolePlayers = Object.entries(dataToUse.playerStats)
+                // Get ALL players for this role and sort them properly
+                const rolePlayers = Object.entries(statsSource)
                     .filter(([player, stats]) =>
                         stats.roleStats &&
                         stats.roleStats[role] &&
@@ -3746,10 +3749,20 @@
                     )
                     .map(([player, stats]) => ({
                         player,
-                        ...stats.roleStats[role]
+                        winRate: stats.roleStats[role].winRate,
+                        wins: stats.roleStats[role].wins,
+                        losses: stats.roleStats[role].losses,
+                        games: stats.roleStats[role].games
                     }))
-                    .sort((a, b) => b.winRate - a.winRate)
-                    .slice(0, 5);
+                    .sort((a, b) => {
+                        // Sort by win rate first
+                        if (Math.abs(b.winRate - a.winRate) > 0.001) {
+                            return b.winRate - a.winRate;
+                        }
+                        // Then by number of games as tiebreaker
+                        return b.games - a.games;
+                    })
+                    .slice(0, 10);
 
                 html += `
                     <div style="background: rgba(255, 255, 255, 0.03); padding: 15px; border-radius: 10px; border: 2px solid rgba(${role === 'Attack' ? '245, 87, 108' : role === 'Defense' ? '67, 233, 123' : '255, 215, 0'}, 0.2);">
@@ -3764,11 +3777,12 @@
                     html += '<div style="font-size: 0.9em;">';
                     rolePlayers.forEach((p, idx) => {
                         const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+                        const escapedName = p.player.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         html += `
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 5px; background: rgba(255, 255, 255, 0.03); border-radius: 5px;">
                                 <div>
                                     <span style="margin-right: 8px;">${medal}</span>
-                                    <span class="clickable-player" onclick="showPlayerProfile('${p.player}')">${p.player}</span>
+                                    <span class="clickable-player" onclick="showPlayerProfile('${escapedName}')">${p.player}</span>
                                 </div>
                                 <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.7);">
                                     <strong style="color: ${roleColor};">${(p.winRate * 100).toFixed(1)}%</strong>
@@ -3811,13 +3825,15 @@
             topPartnerships.forEach((p, idx) => {
                 const winRateClass = p.winRate >= 0.7 ? 'win-rate-high' : p.winRate >= 0.5 ? 'win-rate-medium' : 'win-rate-low';
                 const bgColor = p.winRate >= 0.7 ? 'rgba(67, 233, 123, 0.08)' : p.winRate >= 0.5 ? 'rgba(255, 215, 0, 0.08)' : 'rgba(245, 87, 108, 0.08)';
+                const escapedAttacker = p.attacker.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const escapedDefender = p.defender.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
                 html += `
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: ${bgColor}; border-radius: 8px; border-left: 3px solid ${p.winRate >= 0.7 ? '#43e97b' : p.winRate >= 0.5 ? '#ffd700' : '#f5576c'};">
                         <div style="flex: 1;">
                             <div style="font-weight: 700; margin-bottom: 5px;">
-                                ${idx + 1}. <span class="clickable-player" onclick="showPlayerProfile('${p.attacker}')">${p.attacker}</span> ⚔️ +
-                                <span class="clickable-player" onclick="showPlayerProfile('${p.defender}')">${p.defender}</span> 🛡️
+                                ${idx + 1}. <span class="clickable-player" onclick="showPlayerProfile('${escapedAttacker}')">${p.attacker}</span> ⚔️ +
+                                <span class="clickable-player" onclick="showPlayerProfile('${escapedDefender}')">${p.defender}</span> 🛡️
                             </div>
                             <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">
                                 ${p.wins}-${p.losses} record • ${p.games} games
@@ -5903,9 +5919,12 @@
                                 {name: match.team2.player2, role: match.team2.player2Role, won: match.winner === 'team2'}
                             ].find(p => p.name === playerName);
 
-                            if (playerData && playerData.role) {
+                            if (playerData) {
                                 const role = playerData.role || 'Mixed';
-                                recentRolePerformance[role].push(playerData.won ? 1 : 0);
+                                // Only track if it's a valid role
+                                if (recentRolePerformance[role]) {
+                                    recentRolePerformance[role].push(playerData.won ? 1 : 0);
+                                }
                             }
                         });
 
