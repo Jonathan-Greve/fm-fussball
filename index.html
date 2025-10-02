@@ -2406,16 +2406,16 @@
         }
 
         function updatePlayerStats(match) {
-            const players = [
-                match.team1.player1,
-                match.team1.player2,
-                match.team2.player1,
-                match.team2.player2
+            const playersWithRoles = [
+                {player: match.team1.player1, role: match.team1.player1Role, team: 'team1'},
+                {player: match.team1.player2, role: match.team1.player2Role, team: 'team1'},
+                {player: match.team2.player1, role: match.team2.player1Role, team: 'team2'},
+                {player: match.team2.player2, role: match.team2.player2Role, team: 'team2'}
             ];
-            
-            players.forEach(player => {
+
+            playersWithRoles.forEach(({player, role, team}) => {
                 if (!player || player === 'Unknown') return;
-                
+
                 if (!allData.playerStats[player]) {
                     allData.playerStats[player] = {
                         wins: 0,
@@ -2423,31 +2423,51 @@
                         gamesPlayed: 0,
                         goalsFor: 0,
                         goalsAgainst: 0,
-                        seasons: []
+                        seasons: [],
+                        roleStats: {
+                            Attack: {wins: 0, losses: 0, games: 0, goalsFor: 0, goalsAgainst: 0},
+                            Defense: {wins: 0, losses: 0, games: 0, goalsFor: 0, goalsAgainst: 0},
+                            Mixed: {wins: 0, losses: 0, games: 0, goalsFor: 0, goalsAgainst: 0}
+                        }
                     };
                     // Assign player role (use default or customize)
                     allData.playerRoles[player] = defaultPlayerRoles[player] || 'Mixed';
                 }
-                
+
                 const stats = allData.playerStats[player];
                 stats.gamesPlayed++;
-                
-                if ((match.winner === 'team1' && (player === match.team1.player1 || player === match.team1.player2)) ||
-                    (match.winner === 'team2' && (player === match.team2.player1 || player === match.team2.player2))) {
+
+                const won = (match.winner === team);
+
+                if (won) {
                     stats.wins++;
                 } else {
                     stats.losses++;
                 }
-                
+
                 // Update goals
-                if (player === match.team1.player1 || player === match.team1.player2) {
-                    stats.goalsFor += match.team1.score;
-                    stats.goalsAgainst += match.team2.score;
-                } else {
-                    stats.goalsFor += match.team2.score;
-                    stats.goalsAgainst += match.team1.score;
+                const teamScore = team === 'team1' ? match.team1.score : match.team2.score;
+                const opponentScore = team === 'team1' ? match.team2.score : match.team1.score;
+
+                stats.goalsFor += teamScore;
+                stats.goalsAgainst += opponentScore;
+
+                // Track role-based stats
+                const matchRole = role || 'Mixed';
+                if (!stats.roleStats[matchRole]) {
+                    stats.roleStats[matchRole] = {wins: 0, losses: 0, games: 0, goalsFor: 0, goalsAgainst: 0};
                 }
-                
+
+                stats.roleStats[matchRole].games++;
+                stats.roleStats[matchRole].goalsFor += teamScore;
+                stats.roleStats[matchRole].goalsAgainst += opponentScore;
+
+                if (won) {
+                    stats.roleStats[matchRole].wins++;
+                } else {
+                    stats.roleStats[matchRole].losses++;
+                }
+
                 // Track season
                 if (match.period && !stats.seasons.includes(match.period)) {
                     stats.seasons.push(match.period);
@@ -2511,8 +2531,21 @@
                 const stats = allData.playerStats[player];
                 stats.winRate = stats.gamesPlayed > 0 ? (stats.wins / stats.gamesPlayed) : 0;
                 stats.goalDiff = stats.goalsFor - stats.goalsAgainst;
+
+                // Calculate role-based win rates
+                if (stats.roleStats) {
+                    ['Attack', 'Defense', 'Mixed'].forEach(role => {
+                        if (stats.roleStats[role] && stats.roleStats[role].games > 0) {
+                            const roleData = stats.roleStats[role];
+                            roleData.winRate = roleData.wins / roleData.games;
+                            roleData.goalDiff = roleData.goalsFor - roleData.goalsAgainst;
+                            roleData.avgGoalsFor = roleData.goalsFor / roleData.games;
+                            roleData.avgGoalsAgainst = roleData.goalsAgainst / roleData.games;
+                        }
+                    });
+                }
             });
-            
+
             // Calculate team win rates
             Object.keys(allData.teamStats).forEach(team => {
                 const stats = allData.teamStats[team];
@@ -5258,7 +5291,35 @@
                         </div>
                     </div>
                 </div>
-                
+
+                ${stats.roleStats ? `
+                <div style="margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 15px;">⚔️🛡️ Performance by Role</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        ${['Attack', 'Defense', 'Mixed'].map(role => {
+                            const roleData = stats.roleStats[role];
+                            if (!roleData || roleData.games === 0) return '';
+                            const roleWinRate = (roleData.wins / roleData.games * 100).toFixed(1);
+                            const roleGoalDiff = roleData.goalsFor - roleData.goalsAgainst;
+                            const roleIcon = role === 'Attack' ? '⚔️' : role === 'Defense' ? '🛡️' : '⚖️';
+                            return `
+                                <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border: 2px solid rgba(${role === 'Attack' ? '245, 87, 108' : role === 'Defense' ? '67, 233, 123' : '255, 215, 0'}, 0.3);">
+                                    <div style="font-size: 1.5em; text-align: center; margin-bottom: 10px;">${roleIcon}</div>
+                                    <div style="font-weight: 700; text-align: center; margin-bottom: 10px; color: ${role === 'Attack' ? '#f5576c' : role === 'Defense' ? '#43e97b' : '#ffd700'};">${role}</div>
+                                    <div style="font-size: 0.9em;">
+                                        <div style="margin: 5px 0;">Win Rate: <strong>${roleWinRate}%</strong></div>
+                                        <div style="margin: 5px 0;">Record: <strong>${roleData.wins}W-${roleData.losses}L</strong></div>
+                                        <div style="margin: 5px 0;">Games: <strong>${roleData.games}</strong></div>
+                                        <div style="margin: 5px 0;">Goal Diff: <strong style="color: ${roleGoalDiff >= 0 ? '#43e97b' : '#f5576c'}">${roleGoalDiff >= 0 ? '+' : ''}${roleGoalDiff}</strong></div>
+                                        <div style="margin: 5px 0;">Avg Goals: <strong>${(roleData.goalsFor / roleData.games).toFixed(1)}</strong> / <strong>${(roleData.goalsAgainst / roleData.games).toFixed(1)}</strong></div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
                 <div>
                     <h3 style="margin-bottom: 15px;">🎮 Recent Form</h3>
                     <div class="form-indicator" style="justify-content: center;">
