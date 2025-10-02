@@ -2300,7 +2300,7 @@
                 rowsChecked++;
                 
                 // Check if this row has a match number (numeric value in first column)
-                if (row && row[0] && !isNaN(row[0]) && parseInt(row[0]) > 0) {
+                if (row && row[0] && !isNaN(row[0]) && parseInt(row[0], 10) > 0) {
                     matchesFound++;
                     
                     if (matchesFound <= 3) {
@@ -2325,21 +2325,21 @@
                         // 11: PLAYER 4 ROLE
                         
                         match = {
-                            number: parseInt(row[0]),
+                            number: parseInt(row[0], 10),
                             date: formatDate(row[1]),
                             team1: {
                                 player1: (row[2] || 'Unknown').toString().trim(),
                                 player1Role: (row[3] || '').toString().trim(),
                                 player2: (row[4] || 'Unknown').toString().trim(),
                                 player2Role: (row[5] || '').toString().trim(),
-                                score: parseInt(row[6]) || 0
+                                score: parseInt(row[6], 10) || 0
                             },
                             team2: {
                                 player1: (row[8] || 'Unknown').toString().trim(),
                                 player1Role: (row[9] || '').toString().trim(),
                                 player2: (row[10] || 'Unknown').toString().trim(),
                                 player2Role: (row[11] || '').toString().trim(),
-                                score: parseInt(row[7]) || 0
+                                score: parseInt(row[7], 10) || 0
                             },
                             period: period
                         };
@@ -2355,17 +2355,17 @@
                         // 7: Team 2 Player 2
                         
                         match = {
-                            number: parseInt(row[0]),
+                            number: parseInt(row[0], 10),
                             date: formatDate(row[1]),
                             team1: {
                                 player1: (row[2] || 'Unknown').toString().trim(),
                                 player2: (row[3] || 'Unknown').toString().trim(),
-                                score: parseInt(row[4]) || 0
+                                score: parseInt(row[4], 10) || 0
                             },
                             team2: {
                                 player1: (row[6] || 'Unknown').toString().trim(),
                                 player2: (row[7] || 'Unknown').toString().trim(),
-                                score: parseInt(row[5]) || 0
+                                score: parseInt(row[5], 10) || 0
                             },
                             period: period
                         };
@@ -4975,10 +4975,15 @@
                     try {
                         const parts = match.date.split('/');
                         if (parts.length === 3) {
+                            const day = parseInt(parts[0], 10);
+                            const month = parseInt(parts[1], 10) - 1;
                             let year = parseInt(parts[2], 10);
                             if (year < 100) year = year + 2000;
-                            const date = new Date(year, parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
-                            const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
+
+                            // Validate date components
+                            if (month >= 0 && month < 12 && day >= 1 && day <= 31) {
+                                const date = new Date(year, month, day);
+                                const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
                             
                             // Log weekend dates
                             if (dayName === 'Saturday' || dayName === 'Sunday') {
@@ -4989,9 +4994,10 @@
                                     teams: `${match.team1.player1}/${match.team1.player2} vs ${match.team2.player1}/${match.team2.player2}`
                                 });
                             }
-                            
-                            if (dayStats[dayName]) {
-                                dayStats[dayName].matches++;
+
+                                if (dayStats[dayName]) {
+                                    dayStats[dayName].matches++;
+                                }
                             }
                         }
                     } catch (e) {
@@ -5056,7 +5062,7 @@
                     try {
                         const parts = match.date.split('/');
                         if (parts.length === 3) {
-                            const month = parseInt(parts[1]) - 1;
+                            const month = parseInt(parts[1], 10) - 1;
                             let year = parts[2].trim();
                             
                             // Ensure year is in 4-digit format
@@ -5084,7 +5090,7 @@
                 const [monthA, yearA] = a.split(' ');
                 const [monthB, yearB] = b.split(' ');
                 // Compare years as numbers
-                const yearDiff = parseInt(yearA) - parseInt(yearB);
+                const yearDiff = parseInt(yearA, 10) - parseInt(yearB, 10);
                 if (yearDiff !== 0) return yearDiff;
                 return monthNames.indexOf(monthA) - monthNames.indexOf(monthB);
             }).slice(-6); // Last 6 months
@@ -5766,8 +5772,8 @@
                 // Calculate with OpenSkill parameters
                 const team1AvgMu = team1Players.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / team1Players.length;
                 const team2AvgMu = team2Players.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / team2Players.length;
-                const team1AvgSigma = Math.sqrt(team1Players.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / team1Players.length;
-                const team2AvgSigma = Math.sqrt(team2Players.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / team2Players.length;
+                const team1AvgSigma = Math.sqrt(team1Players.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0) / team1Players.length);
+                const team2AvgSigma = Math.sqrt(team2Players.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0) / team2Players.length);
                 
                 const c = Math.sqrt(2 * Math.pow(4.17, 2) + Math.pow(team1AvgSigma, 2) + Math.pow(team2AvgSigma, 2));
                 team1WinProb = 1 / (1 + Math.exp(-(team1AvgMu - team2AvgMu) / c));
@@ -5935,10 +5941,10 @@
                     team2AvgRating = combo.team2.reduce((sum, p) => sum + allData.trueSkillRatings[p].displayRating, 0) / 2;
                     
                     // For OpenSkill, also consider uncertainty
-                    const team1AvgMu = combo.team1.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / 2;
-                    const team2AvgMu = combo.team2.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / 2;
-                    const team1AvgSigma = Math.sqrt(combo.team1.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / 2;
-                    const team2AvgSigma = Math.sqrt(combo.team2.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0)) / 2;
+                    const team1AvgMu = combo.team1.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / combo.team1.length;
+                    const team2AvgMu = combo.team2.reduce((sum, p) => sum + allData.trueSkillRatings[p].mu, 0) / combo.team2.length;
+                    const team1AvgSigma = Math.sqrt(combo.team1.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0) / combo.team1.length);
+                    const team2AvgSigma = Math.sqrt(combo.team2.reduce((sum, p) => sum + Math.pow(allData.trueSkillRatings[p].sigma, 2), 0) / combo.team2.length);
                     
                     const c = Math.sqrt(2 * Math.pow(4.17, 2) + Math.pow(team1AvgSigma, 2) + Math.pow(team2AvgSigma, 2));
                     team1WinProb = 1 / (1 + Math.exp(-(team1AvgMu - team2AvgMu) / c));
