@@ -1187,12 +1187,13 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 20px;
             padding: 40px;
-            max-width: 800px;
-            width: 90%;
+            max-width: 1100px;
+            width: 95%;
             max-height: 90vh;
             overflow-y: auto;
             position: relative;
             animation: slideUp 0.3s ease;
+            box-shadow: 0 10px 60px rgba(0, 0, 0, 0.5);
         }
         
         .modal-content::-webkit-scrollbar {
@@ -5984,6 +5985,250 @@
                 </div>
                 ` : ''}
 
+                ${(() => {
+                    // Rating Progression Chart Section
+                    const hasElo = elo && elo.history && elo.history.length >= 2;
+                    const hasOpenSkill = allData.trueSkillRatings?.[playerName]?.displayHistory?.length >= 2;
+
+                    if (!hasElo && !hasOpenSkill) return '';
+
+                    return `
+                    <div style="margin-bottom: 30px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3>📈 Rating Progression</h3>
+                            ${hasElo && hasOpenSkill ? `
+                            <div style="display: flex; gap: 8px; background: rgba(255, 255, 255, 0.05); padding: 4px; border-radius: 8px;">
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 255, 255, 0.15)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'">
+                                    <input type="radio" name="profileRatingSystem" value="elo" checked onchange="updatePlayerProfileChart('${playerName}')" style="cursor: pointer;">
+                                    <span style="font-size: 0.85em; font-weight: 600;">ELO</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 255, 255, 0.15)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'">
+                                    <input type="radio" name="profileRatingSystem" value="openskill" onchange="updatePlayerProfileChart('${playerName}')" style="cursor: pointer;">
+                                    <span style="font-size: 0.85em; font-weight: 600;">OpenSkill</span>
+                                </label>
+                            </div>
+                            ` : ''}
+                        </div>
+                        <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 10px;">
+                            <div id="playerRatingStats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                                <!-- Stats will be populated by JS -->
+                            </div>
+                            <div style="height: 200px; position: relative;">
+                                <canvas id="playerRatingChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                })()}
+
+                ${(() => {
+                    // Career Highlights Section
+                    const ratingData = elo || allData.trueSkillRatings?.[playerName];
+                    const playerMatches = allData.matches.filter(m =>
+                        [m.team1.player1, m.team1.player2, m.team2.player1, m.team2.player2].includes(playerName)
+                    );
+
+                    if (playerMatches.length === 0) return '';
+
+                    // Find best and worst performances
+                    let biggestWin = null;
+                    let worstLoss = null;
+                    let bestGoalDiff = { match: null, diff: -999 };
+                    let worstGoalDiff = { match: null, diff: 999 };
+
+                    // Calculate partner stats
+                    const partnerStats = {};
+
+                    playerMatches.forEach(match => {
+                        const isTeam1 = match.team1.player1 === playerName || match.team1.player2 === playerName;
+                        const won = (isTeam1 && match.winner === 'team1') || (!isTeam1 && match.winner === 'team2');
+                        const teamScore = isTeam1 ? match.team1.score : match.team2.score;
+                        const opponentScore = isTeam1 ? match.team2.score : match.team1.score;
+                        const goalDiff = teamScore - opponentScore;
+
+                        // Track goal differentials
+                        if (won && goalDiff > bestGoalDiff.diff) {
+                            bestGoalDiff = { match, diff: goalDiff };
+                        }
+                        if (!won && goalDiff < worstGoalDiff.diff) {
+                            worstGoalDiff = { match, diff: goalDiff };
+                        }
+
+                        // Track partners
+                        const partner = isTeam1 ?
+                            (match.team1.player1 === playerName ? match.team1.player2 : match.team1.player1) :
+                            (match.team2.player1 === playerName ? match.team2.player2 : match.team2.player1);
+
+                        if (partner && partner !== 'Unknown' && partner !== null && partner !== '') {
+                            if (!partnerStats[partner]) {
+                                partnerStats[partner] = { games: 0, wins: 0 };
+                            }
+                            partnerStats[partner].games++;
+                            if (won) partnerStats[partner].wins++;
+                        }
+                    });
+
+                    // Find most frequent and most successful partners
+                    const partners = Object.entries(partnerStats)
+                        .filter(([_, data]) => data.games >= 3)
+                        .sort((a, b) => b[1].games - a[1].games);
+                    const mostFrequentPartner = partners[0];
+                    const bestPartner = Object.entries(partnerStats)
+                        .filter(([_, data]) => data.games >= 5)
+                        .sort((a, b) => (b[1].wins / b[1].games) - (a[1].wins / a[1].games))[0];
+
+                    // Find nemesis and favorite opponent from head-to-head
+                    const h2h = allData.headToHead[playerName] || {};
+                    const opponents = Object.entries(h2h)
+                        .filter(([_, data]) => data.matches >= 3)
+                        .sort((a, b) => b[1].matches - a[1].matches);
+
+                    let nemesis = null;
+                    let favoriteOpponent = null;
+                    let worstWinRate = 1;
+                    let bestWinRate = 0;
+
+                    opponents.forEach(([opponent, data]) => {
+                        const winRate = data.wins / data.matches;
+                        if (data.matches >= 3 && winRate < worstWinRate) {
+                            worstWinRate = winRate;
+                            nemesis = { name: opponent, ...data };
+                        }
+                        if (data.matches >= 3 && winRate > bestWinRate) {
+                            bestWinRate = winRate;
+                            favoriteOpponent = { name: opponent, ...data };
+                        }
+                    });
+
+                    // Rating milestones
+                    const history = ratingData?.history || [];
+                    let biggestGain = 0;
+                    let biggestDrop = 0;
+                    for (let i = 1; i < history.length; i++) {
+                        const change = history[i] - history[i-1];
+                        if (change > biggestGain) biggestGain = change;
+                        if (change < biggestDrop) biggestDrop = change;
+                    }
+
+                    return `
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="margin-bottom: 15px;">⭐ Career Highlights & Lowlights</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+
+                            ${bestGoalDiff.match ? `
+                            <div style="background: rgba(67, 233, 123, 0.1); border: 1px solid rgba(67, 233, 123, 0.3); padding: 15px; border-radius: 10px;">
+                                <div style="font-size: 1.3em; margin-bottom: 8px;">🔥 Biggest Win</div>
+                                <div style="font-size: 1.8em; font-weight: 900; color: #43e97b; margin-bottom: 5px;">${bestGoalDiff.diff} goals</div>
+                                <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">${bestGoalDiff.match.date || 'Unknown date'}</div>
+                            </div>
+                            ` : ''}
+
+                            ${worstGoalDiff.match && worstGoalDiff.diff < 0 ? `
+                            <div style="background: rgba(245, 87, 108, 0.1); border: 1px solid rgba(245, 87, 108, 0.3); padding: 15px; border-radius: 10px;">
+                                <div style="font-size: 1.3em; margin-bottom: 8px;">💔 Toughest Loss</div>
+                                <div style="font-size: 1.8em; font-weight: 900; color: #f5576c; margin-bottom: 5px;">${Math.abs(worstGoalDiff.diff)} goals</div>
+                                <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">${worstGoalDiff.match.date || 'Unknown date'}</div>
+                            </div>
+                            ` : ''}
+
+                            ${streak && streak.longest.win > 1 ? `
+                            <div style="background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3); padding: 15px; border-radius: 10px;">
+                                <div style="font-size: 1.3em; margin-bottom: 8px;">🏆 Best Streak</div>
+                                <div style="font-size: 1.8em; font-weight: 900; color: #ffd700; margin-bottom: 5px;">${streak.longest.win} wins</div>
+                                <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">Consecutive victories</div>
+                            </div>
+                            ` : ''}
+
+                            ${ratingData && history.length > 0 ? `
+                            <div style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); padding: 15px; border-radius: 10px;">
+                                <div style="font-size: 1.3em; margin-bottom: 8px;">📊 Peak Rating</div>
+                                <div style="font-size: 1.8em; font-weight: 900; color: #667eea; margin-bottom: 5px;">${Math.max(...history)}</div>
+                                <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">All-time high</div>
+                            </div>
+                            ` : ''}
+
+                            ${biggestGain > 0 ? `
+                            <div style="background: rgba(67, 233, 123, 0.1); border: 1px solid rgba(67, 233, 123, 0.3); padding: 15px; border-radius: 10px;">
+                                <div style="font-size: 1.3em; margin-bottom: 8px;">📈 Biggest Gain</div>
+                                <div style="font-size: 1.8em; font-weight: 900; color: #43e97b; margin-bottom: 5px;">+${Math.round(biggestGain)}</div>
+                                <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">Rating in single match</div>
+                            </div>
+                            ` : ''}
+
+                            ${mostFrequentPartner ? `
+                            <div style="background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.3); padding: 15px; border-radius: 10px;">
+                                <div style="font-size: 1.3em; margin-bottom: 8px;">👥 Top Partner</div>
+                                <div style="font-size: 1.3em; font-weight: 900; color: #8a2be2; margin-bottom: 5px;" class="clickable-player" onclick="showPlayerProfile('${mostFrequentPartner[0]}'); event.stopPropagation();">${mostFrequentPartner[0]}</div>
+                                <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">${mostFrequentPartner[1].games} games, ${((mostFrequentPartner[1].wins / mostFrequentPartner[1].games) * 100).toFixed(0)}% win rate</div>
+                            </div>
+                            ` : ''}
+
+                            ${favoriteOpponent ? `
+                            <div style="background: rgba(67, 233, 123, 0.1); border: 1px solid rgba(67, 233, 123, 0.3); padding: 15px; border-radius: 10px;">
+                                <div style="font-size: 1.3em; margin-bottom: 8px;">🎯 Favorite Opponent</div>
+                                <div style="font-size: 1.3em; font-weight: 900; color: #43e97b; margin-bottom: 5px;" class="clickable-player" onclick="showPlayerProfile('${favoriteOpponent.name}'); event.stopPropagation();">${favoriteOpponent.name}</div>
+                                <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">${favoriteOpponent.wins}-${favoriteOpponent.losses} record (${(bestWinRate * 100).toFixed(0)}%)</div>
+                            </div>
+                            ` : ''}
+
+                            ${nemesis ? `
+                            <div style="background: rgba(245, 87, 108, 0.1); border: 1px solid rgba(245, 87, 108, 0.3); padding: 15px; border-radius: 10px;">
+                                <div style="font-size: 1.3em; margin-bottom: 8px;">😈 Nemesis</div>
+                                <div style="font-size: 1.3em; font-weight: 900; color: #f5576c; margin-bottom: 5px;" class="clickable-player" onclick="showPlayerProfile('${nemesis.name}'); event.stopPropagation();">${nemesis.name}</div>
+                                <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">${nemesis.wins}-${nemesis.losses} record (${(worstWinRate * 100).toFixed(0)}%)</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    `;
+                })()}
+
+                ${(() => {
+                    // Head-to-Head Records Section
+                    const h2h = allData.headToHead[playerName];
+                    if (!h2h || Object.keys(h2h).length === 0) return '';
+
+                    const opponents = Object.entries(h2h)
+                        .sort((a, b) => b[1].matches - a[1].matches)
+                        .slice(0, 15);
+
+                    return `
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="margin-bottom: 15px;">⚔️ Head-to-Head Records</h3>
+                        <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 10px; max-height: 400px; overflow-y: auto;">
+                            <div style="display: grid; gap: 10px;">
+                                ${opponents.map(([opponent, data]) => {
+                                    const winRate = data.matches > 0 ? (data.wins / data.matches * 100).toFixed(0) : 0;
+                                    const isDominating = winRate >= 60;
+                                    const isStrugging = winRate <= 40;
+                                    const bgColor = isDominating ? 'rgba(67, 233, 123, 0.1)' : isStrugging ? 'rgba(245, 87, 108, 0.1)' : 'rgba(255, 255, 255, 0.05)';
+                                    const borderColor = isDominating ? 'rgba(67, 233, 123, 0.3)' : isStrugging ? 'rgba(245, 87, 108, 0.3)' : 'rgba(255, 255, 255, 0.1)';
+
+                                    return `
+                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: ${bgColor}; border: 1px solid ${borderColor}; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='translateX(0)'">
+                                            <div style="flex: 1;">
+                                                <span class="clickable-player" onclick="showPlayerProfile('${opponent}'); event.stopPropagation();" style="font-weight: 700; font-size: 1.1em;">${opponent}</span>
+                                            </div>
+                                            <div style="display: flex; gap: 20px; align-items: center;">
+                                                <div style="text-align: center; min-width: 80px;">
+                                                    <div style="font-size: 1.3em; font-weight: 700; color: ${isDominating ? '#43e97b' : isStrugging ? '#f5576c' : '#fff'};">${data.wins}-${data.losses}</div>
+                                                    <div style="font-size: 0.75em; color: rgba(255, 255, 255, 0.5);">${data.matches} games</div>
+                                                </div>
+                                                <div style="text-align: center; min-width: 60px;">
+                                                    <div style="font-size: 1.2em; font-weight: 700; color: ${isDominating ? '#43e97b' : isStrugging ? '#f5576c' : '#ffd700'};">${winRate}%</div>
+                                                    <div style="font-size: 0.75em; color: rgba(255, 255, 255, 0.5);">win rate</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            ${opponents.length === 0 ? '<div style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 20px;">No head-to-head data available</div>' : ''}
+                        </div>
+                    </div>
+                    `;
+                })()}
+
                 <div>
                     <h3 style="margin-bottom: 15px;">🎮 Recent Form</h3>
                     <div class="form-indicator" style="justify-content: center;">
@@ -5995,9 +6240,137 @@
                     </div>
                 </div>
             `;
-            
+
             content.innerHTML = html;
             modal.style.display = 'flex';
+
+            // Render rating chart after modal is displayed
+            setTimeout(() => {
+                updatePlayerProfileChart(playerName);
+            }, 100);
+        }
+
+        function updatePlayerProfileChart(playerName) {
+            const chartCanvas = document.getElementById('playerRatingChart');
+            const statsDiv = document.getElementById('playerRatingStats');
+            if (!chartCanvas || !statsDiv) return;
+
+            // Determine which rating system to use
+            const selectedSystem = document.querySelector('input[name="profileRatingSystem"]:checked')?.value || 'elo';
+
+            let ratingData, history, currentRating, systemName, systemColor;
+
+            if (selectedSystem === 'openskill' && allData.trueSkillRatings?.[playerName]) {
+                ratingData = allData.trueSkillRatings[playerName];
+                history = ratingData.displayHistory || [];
+                currentRating = ratingData.displayRating || 1500;
+                systemName = 'OpenSkill';
+                systemColor = '#4299e1';
+            } else {
+                ratingData = allData.eloRatings[playerName];
+                history = ratingData?.history || [];
+                currentRating = ratingData?.rating || 1500;
+                systemName = 'ELO';
+                systemColor = '#667eea';
+            }
+
+            if (!history || history.length < 2) return;
+
+            const peakRating = Math.max(...history);
+            const lowestRating = Math.min(...history);
+            const startingRating = history[0];
+            const ratingChange = currentRating - startingRating;
+
+            // Update stats display
+            statsDiv.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">Current</div>
+                    <div style="font-size: 1.5em; font-weight: 700; color: ${systemColor};">${currentRating}</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">Peak</div>
+                    <div style="font-size: 1.5em; font-weight: 700; color: #43e97b;">${peakRating}</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">Starting</div>
+                    <div style="font-size: 1.5em; font-weight: 700; color: rgba(255, 255, 255, 0.7);">${startingRating}</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">Change</div>
+                    <div style="font-size: 1.5em; font-weight: 700; color: ${ratingChange >= 0 ? '#43e97b' : '#f5576c'};">${ratingChange >= 0 ? '+' : ''}${ratingChange}</div>
+                </div>
+            `;
+
+            // Render chart
+            const ctx = chartCanvas.getContext('2d');
+
+            // Destroy existing chart if any
+            if (chartInstances.playerProfile) {
+                chartInstances.playerProfile.destroy();
+            }
+
+            const labels = history.map((_, i) => `Game ${i + 1}`);
+
+            chartInstances.playerProfile = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: systemName + ' Rating',
+                        data: history,
+                        borderColor: systemColor,
+                        backgroundColor: systemColor === '#667eea' ? 'rgba(102, 126, 234, 0.1)' : 'rgba(66, 153, 225, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: systemColor,
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: systemColor,
+                            borderWidth: 1,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${systemName}: ${Math.round(context.parsed.y)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                maxTicksLimit: 8
+                            }
+                        },
+                        y: {
+                            display: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.6)' }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
         }
         
         function closePlayerProfile() {
