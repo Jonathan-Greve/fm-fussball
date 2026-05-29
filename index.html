@@ -7,8 +7,25 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script type="module">
-        import { rating, rate, ordinal } from 'https://cdn.skypack.dev/openskill';
-        window.OpenSkill = { rating, rate, ordinal };
+        const openSkillSources = [
+            'https://cdn.jsdelivr.net/npm/openskill/+esm',
+            'https://esm.sh/openskill'
+        ];
+
+        for (const source of openSkillSources) {
+            try {
+                const { rating, rate, ordinal } = await import(source);
+                window.OpenSkill = { rating, rate, ordinal };
+                console.log(`OpenSkill library loaded from ${source}`);
+                break;
+            } catch (error) {
+                console.warn(`Failed to load OpenSkill from ${source}`, error);
+            }
+        }
+
+        if (!window.OpenSkill) {
+            console.error('OpenSkill library failed to load from all configured sources');
+        }
     </script>
     <style>
         * {
@@ -2325,6 +2342,11 @@
                     if (matchesFound <= 3) {
                         console.log(`  Found match ${matchesFound} at row ${i + 1}:`, row.slice(0, 12));
                     }
+
+                    if (isNonCountingMatchRow(row)) {
+                        console.log(`  Skipping match ${row[0]} - row is marked as non-counting`);
+                        continue;
+                    }
                     
                     let match;
                     
@@ -2422,6 +2444,20 @@
             console.log(`  Added ${allData.seasonData[period].matches} valid matches to database`);
             
             // No separate player stats table - stats are calculated from match data
+        }
+
+        function getMatchRowMetadataText(row) {
+            return row
+                .slice(12, 16)
+                .filter(cell => cell !== undefined && cell !== null && cell !== '')
+                .map(cell => cell.toString().trim())
+                .join(' ')
+                .toLowerCase();
+        }
+
+        function isNonCountingMatchRow(row) {
+            const metadataText = getMatchRowMetadataText(row);
+            return /\b(doesn'?t count|does not count|shouldn'?t count|should not count)\b/i.test(metadataText);
         }
 
         function updatePlayerStats(match) {
