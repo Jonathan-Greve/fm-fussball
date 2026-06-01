@@ -2343,11 +2343,6 @@
                         console.log(`  Found match ${matchesFound} at row ${i + 1}:`, row.slice(0, 12));
                     }
 
-                    if (isNonCountingMatchRow(row)) {
-                        console.log(`  Skipping match ${row[0]} - row is marked as non-counting`);
-                        continue;
-                    }
-                    
                     let match;
                     
                     if (hasRoleColumns) {
@@ -2444,20 +2439,6 @@
             console.log(`  Added ${allData.seasonData[period].matches} valid matches to database`);
             
             // No separate player stats table - stats are calculated from match data
-        }
-
-        function getMatchRowMetadataText(row) {
-            return row
-                .slice(12, 16)
-                .filter(cell => cell !== undefined && cell !== null && cell !== '')
-                .map(cell => cell.toString().trim())
-                .join(' ')
-                .toLowerCase();
-        }
-
-        function isNonCountingMatchRow(row) {
-            const metadataText = getMatchRowMetadataText(row);
-            return /\b(doesn'?t count|does not count|shouldn'?t count|should not count)\b/i.test(metadataText);
         }
 
         function updatePlayerStats(match) {
@@ -2676,7 +2657,7 @@
                 setTimeout(() => {
                     if (window.OpenSkill) {
                         calculateTrueSkillRatings();
-                        if (currentRatingSystem === 'trueskill') {
+                        if (currentRatingSystem === 'openskill' || currentRatingSystem === 'trueskill') {
                             updateEloRankings();
                             updateEloHistoryChart();
                         }
@@ -4819,8 +4800,9 @@
         }
         
         function switchRatingSystem(system) {
-            currentRatingSystem = system;
-            localStorage.setItem('ratingSystem', system);
+            const normalizedSystem = system === 'trueskill' ? 'openskill' : system;
+            currentRatingSystem = normalizedSystem;
+            localStorage.setItem('ratingSystem', normalizedSystem);
             
             // Update UI titles
             const title = document.getElementById('ratingsTitle');
@@ -4828,7 +4810,7 @@
             const historyTitle = document.getElementById('ratingHistoryTitle');
             const analyticsTitle = document.getElementById('ratingAnalyticsTitle');
             
-            if (system === 'trueskill') {
+            if (normalizedSystem === 'openskill') {
                 title.textContent = '🎯 OpenSkill Rankings';
                 note.innerHTML = '* OpenSkill: Better for team games • Accounts for uncertainty • Min 5 games required';
                 historyTitle.textContent = '📈 OpenSkill Rating History';
@@ -5223,7 +5205,7 @@
                         y: {
                             title: {
                                 display: true,
-                                text: currentRatingSystem === 'trueskill' ? 'OpenSkill Rating' : 'ELO Rating',
+                                text: (currentRatingSystem === 'openskill' || currentRatingSystem === 'trueskill') ? 'OpenSkill Rating' : 'ELO Rating',
                                 color: 'rgba(255, 255, 255, 0.7)'
                             },
                             ticks: { color: 'rgba(255, 255, 255, 0.7)' },
